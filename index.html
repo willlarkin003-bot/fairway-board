@@ -271,7 +271,8 @@
         : `Fresh scan just now`;
       tickerRows.innerHTML = `<b>${data.apiRows.toLocaleString()}</b> odds pulled`;
       tickerMatched.innerHTML = `<b>${data.matched.toLocaleString()}</b> matched to a Bet365 price`;
-      tickerCount.innerHTML = `<b>${data.bets.length}</b> clear min. EV ${data.minEv}%`;
+      const matchupNote = data.matchupMinEv ? ` (${data.matchupMinEv}% for matchups/3-balls)` : "";
+      tickerCount.innerHTML = `<b>${data.bets.length}</b> clear min. EV ${data.minEv}%${matchupNote}`;
     } catch (err) {
       statusDot.className = "error";
       statusText.textContent = "Couldn't load the board";
