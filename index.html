@@ -92,6 +92,17 @@
   .note { max-width: 46rem; font-size: 0.82rem; color: var(--ink-dim); line-height: 1.55; margin-top: 1.6rem; }
   .note b { color: var(--ink); }
 
+  .new-section { background: rgba(37, 99, 235, 0.08); border: 1px solid #2563eb; border-radius: 10px;
+                 padding: 0.2rem 1rem 0.9rem; margin-bottom: 1.6rem; }
+  .new-section h2 { font-family: var(--font-display); font-size: 0.78rem; text-transform: uppercase;
+                     letter-spacing: 0.05em; color: #60a5fa; margin: 0.9rem 0 0.6rem; font-weight: 700; }
+  .new-section table { min-width: 0; }
+  .new-badge { display: inline-block; font-size: 0.62rem; font-weight: 700; text-transform: uppercase;
+               letter-spacing: 0.05em; background: #2563eb; color: #dbeafe; border-radius: 3px;
+               padding: 1px 5px; margin-left: 0.4rem; vertical-align: 1px; }
+  tbody tr.new-row { border-left-color: #2563eb; background: rgba(37, 99, 235, 0.07); }
+  tbody tr.new-row.watch { border-left-color: var(--warn); }
+
   @media (prefers-reduced-motion: no-preference) {
     #status-dot { transition: background-color 0.3s ease; }
   }
@@ -121,6 +132,8 @@
     <span><strong>Fair</strong> &mdash; the decimal odds that probability implies</span>
     <span><strong>EV%</strong> &mdash; edge if the model's right: (Model% &times; price) &minus; 1</span>
   </div>
+
+  <div id="new-section-container"></div>
 
   <div class="board-scroll">
     <table>
@@ -158,6 +171,7 @@
   const AUTO_REFRESH_MS = 60000;
 
   const body = document.getElementById("board-body");
+  const newSectionContainer = document.getElementById("new-section-container");
   const statusDot = document.getElementById("status-dot");
   const statusText = document.getElementById("status-text");
   const tickerRows = document.getElementById("ticker-rows");
@@ -165,11 +179,20 @@
   const tickerCount = document.getElementById("ticker-count");
   const refreshBtn = document.getElementById("refresh-btn");
 
+  // Bets seen on the previous successful load in *this browser tab*. null
+  // means "no prior load yet" -- nothing is flagged as new on the very
+  // first render, only once there's something to compare against.
+  let previousKeys = null;
+
+  function betKey(bet) {
+    return `${bet.market}|${bet.tour}|${bet.selection}`;
+  }
+
   function escapeHtml(s) {
     return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   }
 
-  function renderRow(bet) {
+  function renderRow(bet, isNew) {
     const watch = bet.evPercent >= CAUTION_EV_THRESHOLD;
     const [pickName, oppName] = bet.selection.includes(" vs ")
       ? bet.selection.split(/ vs (.+)/s)
@@ -177,15 +200,17 @@
     const pickCell = oppName
       ? `<span class="pick">${escapeHtml(pickName)}</span> <span class="opp">vs ${escapeHtml(oppName)}</span>`
       : `<span class="pick">${escapeHtml(pickName)}</span>`;
+    const newBadge = isNew ? ' <span class="new-badge">NEW</span>' : "";
     const evCell = `${bet.evPercent > 0 ? "+" : ""}${bet.evPercent.toFixed(1)}%` + (watch ? ' <span class="chip">verify</span>' : "");
     const modelPct = (bet.modelProb * 100).toFixed(1) + "%";
 
     const tr = document.createElement("tr");
-    if (watch) tr.className = "watch";
+    const classes = [watch ? "watch" : "", isNew ? "new-row" : ""].filter(Boolean);
+    if (classes.length) tr.className = classes.join(" ");
     tr.innerHTML = `
       <td class="market-tag">${escapeHtml(bet.market)}</td>
       <td>${escapeHtml(bet.tour)}</td>
-      <td>${pickCell}</td>
+      <td>${pickCell}${newBadge}</td>
       <td class="num odds">${escapeHtml(bet.bookAmerican)}</td>
       <td class="num">${modelPct}</td>
       <td class="num">${bet.fairDecimal.toFixed(2)}</td>
@@ -212,11 +237,31 @@
       const data = await resp.json();
       if (data.error) throw new Error(data.error);
 
+      const bets = data.bets || [];
+      const currentKeys = new Set(bets.map(betKey));
+      const newKeys = previousKeys ? [...currentKeys].filter((k) => !previousKeys.has(k)) : [];
+      previousKeys = currentKeys;
+
       body.innerHTML = "";
-      if (!data.bets || data.bets.length === 0) {
+      if (bets.length === 0) {
         body.innerHTML = '<tr><td colspan="8" class="empty">No +EV bets at or above the current threshold.</td></tr>';
       } else {
-        for (const bet of data.bets) body.appendChild(renderRow(bet));
+        for (const bet of bets) body.appendChild(renderRow(bet, newKeys.includes(betKey(bet))));
+      }
+
+      if (newKeys.length > 0) {
+        const newBets = bets.filter((bet) => newKeys.includes(betKey(bet)));
+        const newTable = document.createElement("table");
+        const newBody = document.createElement("tbody");
+        for (const bet of newBets) newBody.appendChild(renderRow(bet, true));
+        newTable.innerHTML = `
+          <thead><tr><th>Market</th><th>Tour</th><th>Pick</th><th class="num">B365</th>
+          <th class="num">Model%</th><th class="num">Fair</th><th class="num">EV%</th><th class="num">Stake</th></tr></thead>`;
+        newTable.appendChild(newBody);
+        newSectionContainer.innerHTML = `<div class="new-section"><h2>New since last refresh (${newBets.length})</h2></div>`;
+        newSectionContainer.querySelector(".new-section").appendChild(newTable);
+      } else {
+        newSectionContainer.innerHTML = "";
       }
 
       const scanAge = timeAgo(data.lastScan);
