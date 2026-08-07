@@ -13,7 +13,12 @@ on:
     # delay, while REQUESTS_PER_MINUTE below keeps every run under DataGolf's
     # 45 req/min limit.
     - cron: "*/5 * * * *"
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      test_telegram:
+        description: "Send one fake test alert to Telegram instead of running a real scan (does not touch simulator.db)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -37,7 +42,27 @@ jobs:
         working-directory: scanner
         run: pip install -r requirements.txt
 
+      - name: Send Telegram test alert (test_telegram=true only, does not touch simulator.db)
+        if: ${{ github.event.inputs.test_telegram == 'true' }}
+        working-directory: scanner
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python -c "
+          import telegram_alert, simulator_db
+          fake = [simulator_db.SimBet(
+              event_name='TEST ALERT -- not a real pick', tour='pga', market='WIN',
+              player_name='Test, Player', opponents=[], round_num=None,
+              book_decimal=51.0, book_american='+5000', model_prob=0.03,
+              fair_decimal=33.3, ev_percent=42.0, stake=5.00,
+          )]
+          telegram_alert.send_new_bets(fake)
+          print('Sent (or no-op if TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID are unset).')
+          "
+
       - name: Continuous refresh loop (scan, log paper bets, rebuild, push -- repeats for ~4.5 min)
+        if: ${{ github.event.inputs.test_telegram != 'true' }}
         working-directory: scanner
         env:
           DATAGOLF_API_KEY: ${{ secrets.DATAGOLF_API_KEY }}
