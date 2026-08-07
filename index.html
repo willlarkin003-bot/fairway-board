@@ -3,77 +3,83 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Fairway Board — DataGolf × Bet365 +EV Scan</title>
+<title>Fairway Board</title>
 <style>
   :root {
-    --bg: #15130f;
-    --bg-panel: #1c1912;
-    --bg-panel-alt: #221e15;
-    --line: #332c1f;
-    --ink: #f3ead2;
-    --ink-dim: #a89877;
-    --ink-faint: #756a4e;
-    --accent: #c9a24d;
-    --good: #34d399;
-    --warn: #f59e0b;
-    --warn-bg: rgba(245, 158, 11, 0.10);
-    --bad: #f87171;
+    --bg: #faf6ec; --bg-panel: #f1e9d4; --bg-panel-alt: #ece2c7; --line: #ddd0ad;
+    --ink: #221d12; --ink-dim: #6b5f42; --ink-faint: #948765; --accent: #8a6a26;
+    --good: #15803d; --warn: #a35709; --warn-bg: rgba(163, 87, 9, 0.08);
+    --lost: #b91c1c;
     --font-display: Bahnschrift, "SF Compact Condensed", "Segoe UI Semibold", system-ui, sans-serif;
     --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     --font-mono: ui-monospace, "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
-    color-scheme: dark light;
+    color-scheme: light dark;
   }
-  @media (prefers-color-scheme: light) {
+  @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #faf6ec; --bg-panel: #f1e9d4; --bg-panel-alt: #ece2c7; --line: #ddd0ad;
-      --ink: #221d12; --ink-dim: #6b5f42; --ink-faint: #948765; --accent: #8a6a26;
-      --good: #15803d; --warn: #a35709; --warn-bg: rgba(163, 87, 9, 0.08); --bad: #b91c1c;
+      --bg: #15130f; --bg-panel: #1c1912; --bg-panel-alt: #221e15; --line: #332c1f;
+      --ink: #f3ead2; --ink-dim: #a89877; --ink-faint: #756a4e; --accent: #c9a24d;
+      --good: #34d399; --warn: #f59e0b; --warn-bg: rgba(245, 158, 11, 0.10);
+      --lost: #f87171;
     }
+  }
+  :root[data-theme="dark"] {
+    --bg: #15130f; --bg-panel: #1c1912; --bg-panel-alt: #221e15; --line: #332c1f;
+    --ink: #f3ead2; --ink-dim: #a89877; --ink-faint: #756a4e; --accent: #c9a24d;
+    --good: #34d399; --warn: #f59e0b; --warn-bg: rgba(245, 158, 11, 0.10);
+    --lost: #f87171;
+  }
+  :root[data-theme="light"] {
+    --bg: #faf6ec; --bg-panel: #f1e9d4; --bg-panel-alt: #ece2c7; --line: #ddd0ad;
+    --ink: #221d12; --ink-dim: #6b5f42; --ink-faint: #948765; --accent: #8a6a26;
+    --good: #15803d; --warn: #a35709; --warn-bg: rgba(163, 87, 9, 0.08);
+    --lost: #b91c1c;
   }
 
   * { box-sizing: border-box; }
   body { background: var(--bg); color: var(--ink); font-family: var(--font-body);
-         margin: 0; padding: 2.5rem 1.5rem 4rem; }
+          margin: 0; padding: 2.5rem 1.5rem 4rem; }
+  a { color: var(--accent); }
   :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
   .wrap { max-width: 68rem; margin: 0 auto; }
 
-  header.masthead { display: flex; align-items: flex-end; justify-content: space-between;
-                     flex-wrap: wrap; gap: 0.75rem 1.5rem; border-bottom: 2px solid var(--accent);
-                     padding-bottom: 0.9rem; margin-bottom: 0.6rem; }
+  header.masthead { border-bottom: 2px solid var(--accent); padding-bottom: 0.9rem; margin-bottom: 0; }
   .wordmark { font-family: var(--font-display); font-weight: 700; font-size: clamp(1.6rem, 4vw, 2.3rem);
-              text-transform: uppercase; letter-spacing: 0.02em; margin: 0; text-wrap: balance; }
+               text-transform: uppercase; letter-spacing: 0.02em; margin: 0; text-wrap: balance; }
   .wordmark span { color: var(--accent); }
   .tagline { font-size: 0.85rem; color: var(--ink-dim); margin: 0.15rem 0 0; }
 
-  #refresh-btn { font-family: var(--font-display); font-weight: 600; text-transform: uppercase;
-                 letter-spacing: 0.04em; font-size: 0.8rem; background: var(--accent); color: var(--bg);
-                 border: none; border-radius: 6px; padding: 0.55rem 1.1rem; cursor: pointer; }
-  #refresh-btn:disabled { opacity: 0.6; cursor: default; }
-  #refresh-btn:hover:not(:disabled) { filter: brightness(1.08); }
+  nav.tabs { display: flex; gap: 0.4rem; margin: 1.1rem 0 1.6rem; }
+  nav.tabs button { font-family: var(--font-display); font-size: 0.8rem; text-transform: uppercase;
+                      letter-spacing: 0.04em; font-weight: 600; background: transparent;
+                      color: var(--ink-dim); border: 1px solid var(--line); border-radius: 7px;
+                      padding: 0.5rem 1.1rem; cursor: pointer; }
+  nav.tabs button.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  nav.tabs button:not(.active):hover { color: var(--ink); border-color: var(--ink-faint); }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
 
   .ticker { font-family: var(--font-mono); font-size: 0.78rem; color: var(--ink-faint);
-            display: flex; flex-wrap: wrap; gap: 0.3rem 1.4rem; margin: 0.9rem 0 1.6rem;
-            border-bottom: 1px solid var(--line); padding-bottom: 0.9rem; align-items: baseline; }
+             display: flex; flex-wrap: wrap; gap: 0.3rem 1.4rem; margin: 0 0 1.6rem;
+             border-bottom: 1px solid var(--line); padding-bottom: 0.9rem; }
   .ticker b { color: var(--ink-dim); font-weight: 600; }
-  #status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--good);
-                margin-right: 0.4rem; }
-  #status-dot.stale { background: var(--warn); }
-  #status-dot.error { background: var(--bad); }
 
   .key { display: flex; flex-wrap: wrap; gap: 0.5rem 1.6rem; font-size: 0.82rem;
-         color: var(--ink-dim); margin-bottom: 1.6rem; }
+          color: var(--ink-dim); margin-bottom: 1.6rem; }
   .key strong { color: var(--ink); }
 
-  .board-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; min-height: 8rem; }
+  .board-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
   table { border-collapse: collapse; width: 100%; min-width: 54rem; }
+  .rollup table { min-width: 0; }
   thead th { position: sticky; top: 0; background: var(--bg-panel); text-align: left;
-             font-family: var(--font-display); font-weight: 600; text-transform: uppercase;
-             letter-spacing: 0.06em; font-size: 0.72rem; color: var(--ink-dim);
-             padding: 0.7rem 0.9rem; border-bottom: 1px solid var(--line); white-space: nowrap; }
+              font-family: var(--font-display); font-weight: 600; text-transform: uppercase;
+              letter-spacing: 0.06em; font-size: 0.72rem; color: var(--ink-dim);
+              padding: 0.7rem 0.9rem; border-bottom: 1px solid var(--line); white-space: nowrap; }
   th.num, td.num { text-align: right; }
   tbody td { padding: 0.55rem 0.9rem; border-bottom: 1px solid var(--line); font-size: 0.87rem;
-             vertical-align: middle; white-space: nowrap; }
+              vertical-align: middle; white-space: nowrap; }
   tbody tr:nth-child(even) { background: var(--bg-panel-alt); }
   tbody tr { border-left: 3px solid transparent; }
   tbody tr.watch { border-left-color: var(--warn); background: var(--warn-bg); }
@@ -81,211 +87,1725 @@
   td.ev { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-weight: 700; color: var(--good); }
   tr.watch td.ev { color: var(--warn); }
   .pick { color: var(--ink); font-weight: 600; }
-  .opp { color: var(--ink-faint); font-weight: 400; }
+  .opp { color: var(--ink-faint); font-weight: 400; font-size: 0.72rem; }
   .chip { display: inline-block; font-family: var(--font-body); font-size: 0.62rem; font-weight: 700;
-          text-transform: uppercase; letter-spacing: 0.05em; background: var(--warn); color: #1a1200;
-          border-radius: 3px; padding: 1px 5px; margin-left: 0.4rem; vertical-align: 1px; }
+           text-transform: uppercase; letter-spacing: 0.05em; background: var(--warn); color: #1a1200;
+           border-radius: 3px; padding: 1px 5px; margin-left: 0.4rem; vertical-align: 1px; }
   .market-tag { font-family: var(--font-mono); font-size: 0.72rem; color: var(--ink-dim); }
-  .empty, .loading, .error-row { text-align: center; color: var(--ink-dim); padding: 2.5rem 0; }
-  .error-row { color: var(--bad); }
 
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+            gap: 0.8rem; margin-bottom: 2rem; }
+  .stat-card { background: var(--bg-panel); border: 1px solid var(--line); border-radius: 10px; padding: 0.9rem 1rem; }
+  .stat-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-dim); }
+  .stat-profit { font-family: var(--font-mono); font-size: 1.5rem; font-weight: 700; margin: 0.2rem 0 0.5rem; }
+  .stat-profit.pos { color: var(--good); }
+  .stat-profit.neg { color: var(--lost); }
+  .stat-profit.flat { color: var(--ink-dim); }
+  .stat-row { display: flex; justify-content: space-between; font-size: 0.78rem; color: var(--ink-dim);
+               font-family: var(--font-mono); margin-top: 0.15rem; }
+  .stat-pending { font-size: 0.72rem; color: var(--warn); margin-top: 0.4rem; }
+
+  .status-won { color: var(--good); font-weight: 600; font-size: 0.75rem; }
+  .status-lost { color: var(--lost); font-weight: 600; font-size: 0.75rem; }
+  .status-push { color: var(--ink-dim); font-weight: 600; font-size: 0.75rem; }
+  .status-pending { color: var(--warn); font-weight: 600; font-size: 0.75rem; }
+  .payout-won { color: var(--good); font-weight: 700; }
+  .payout-lost { color: var(--lost); font-weight: 700; }
+  .payout-push, .payout-pending { color: var(--ink-faint); }
+  .empty { text-align: center; color: var(--ink-dim); padding: 2rem 0; }
+
+  .section-title { font-size: 0.95rem; margin: 2rem 0 0.6rem; color: var(--accent); }
   .note { max-width: 46rem; font-size: 0.82rem; color: var(--ink-dim); line-height: 1.55; margin-top: 1.6rem; }
   .note b { color: var(--ink); }
-
-  .new-section { background: rgba(37, 99, 235, 0.08); border: 1px solid #2563eb; border-radius: 10px;
-                 padding: 0.2rem 1rem 0.9rem; margin-bottom: 1.6rem; }
-  .new-section h2 { font-family: var(--font-display); font-size: 0.78rem; text-transform: uppercase;
-                     letter-spacing: 0.05em; color: #60a5fa; margin: 0.9rem 0 0.6rem; font-weight: 700; }
-  .new-section table { min-width: 0; }
-  .new-badge { display: inline-block; font-size: 0.62rem; font-weight: 700; text-transform: uppercase;
-               letter-spacing: 0.05em; background: #2563eb; color: #dbeafe; border-radius: 3px;
-               padding: 1px 5px; margin-left: 0.4rem; vertical-align: 1px; }
-  tbody tr.new-row { border-left-color: #2563eb; background: rgba(37, 99, 235, 0.07); }
-  tbody tr.new-row.watch { border-left-color: var(--warn); }
-
-  @media (prefers-reduced-motion: no-preference) {
-    #status-dot { transition: background-color 0.3s ease; }
-  }
+  .snapshot-flag { display: inline-flex; align-items: center; gap: 0.4rem; font-family: var(--font-mono);
+                     font-size: 0.75rem; color: var(--accent); border: 1px dashed var(--accent);
+                     border-radius: 999px; padding: 0.3rem 0.8rem; margin-top: 1.8rem; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header class="masthead">
-    <div>
-      <h1 class="wordmark">Fairway <span>Board</span></h1>
-      <p class="tagline">DataGolf model vs. Bet365 prices &mdash; positive-EV golf bets</p>
-    </div>
-    <button id="refresh-btn" type="button">Refresh</button>
+    <h1 class="wordmark">Fairway <span>Board</span></h1>
+    <p class="tagline">DataGolf model vs. Bet365 prices &mdash; positive-EV golf bets, plus the paper-trading simulator</p>
   </header>
 
-  <div class="ticker">
-    <span><span id="status-dot"></span><span id="status-text">Loading&hellip;</span></span>
-    <span id="ticker-rows"></span>
-    <span id="ticker-matched"></span>
-    <span id="ticker-count"></span>
-    <span><b>Stakes</b> sized off a $2,000 bankroll, quarter-Kelly, $50 cap</span>
-  </div>
+  <nav class="tabs">
+    <button type="button" class="active" data-tab="board">Board</button>
+    <button type="button" data-tab="sim">Simulator</button>
+  </nav>
 
-  <div class="key">
-    <span><strong>B365</strong> &mdash; Bet365's current American-odds price</span>
-    <span><strong>Model%</strong> &mdash; DataGolf's win probability</span>
-    <span><strong>Fair</strong> &mdash; the decimal odds that probability implies</span>
-    <span><strong>EV%</strong> &mdash; edge if the model's right: (Model% &times; price) &minus; 1</span>
-  </div>
+  <section id="panel-board" class="panel active">
+    <div class="ticker">
+      <span><b>Scanned</b> 2026-08-07 08:46:07</span>
+      <span><b>2078</b> odds pulled</span>
+      <span><b>1986</b> matched to a Bet365 price</span>
+      <span><b>107</b> clear min. EV 3.0%</span>
+      <span><b>Stakes</b> sized off a $2,000 bankroll, quarter-Kelly, $50 cap</span>
+    </div>
+    <div class="key">
+      <span><strong>B365</strong> &mdash; Bet365's current American-odds price</span>
+      <span><strong>Model%</strong> &mdash; DataGolf's win probability</span>
+      <span><strong>Fair</strong> &mdash; the decimal odds that probability implies</span>
+      <span><strong>EV%</strong> &mdash; edge if the model's right: (Model% &times; price) &minus; 1</span>
+    </div>
+    <div class="board-scroll">
+      <table>
+        <thead>
+          <tr><th>Market</th><th>Tour</th><th>Pick</th><th class="num">B365</th><th class="num">Model%</th>
+              <th class="num">Fair</th><th class="num">EV%</th><th class="num">Stake</th></tr>
+        </thead>
+        <tbody>
+      <tr class="watch">
+        <td class="market-tag">TOP_5</td>
+        <td>kft</td>
+        <td><span class="pick">Hale Jr, Blaine</span></td>
+        <td class="num odds">+11000</td>
+        <td class="num">2.2%</td>
+        <td class="num">44.76</td>
+        <td class="num ev">+148.0% <span class="chip">verify</span></td>
+        <td class="num">$6.73</td>
+      </tr>
+      <tr class="watch">
+        <td class="market-tag">TOP_5</td>
+        <td>kft</td>
+        <td><span class="pick">Welch, Patrick</span></td>
+        <td class="num odds">+9000</td>
+        <td class="num">2.3%</td>
+        <td class="num">42.89</td>
+        <td class="num ev">+112.2% <span class="chip">verify</span></td>
+        <td class="num">$6.23</td>
+      </tr>
+      <tr class="watch">
+        <td class="market-tag">TOP_10</td>
+        <td>kft</td>
+        <td><span class="pick">Hale Jr, Blaine</span></td>
+        <td class="num odds">+4100</td>
+        <td class="num">4.8%</td>
+        <td class="num">20.74</td>
+        <td class="num ev">+102.5% <span class="chip">verify</span></td>
+        <td class="num">$12.50</td>
+      </tr>
+      <tr class="watch">
+        <td class="market-tag">TOP_5</td>
+        <td>kft</td>
+        <td><span class="pick">Humphrey, Theo</span></td>
+        <td class="num odds">+9000</td>
+        <td class="num">2.2%</td>
+        <td class="num">45.04</td>
+        <td class="num ev">+102.0% <span class="chip">verify</span></td>
+        <td class="num">$5.67</td>
+      </tr>
+      <tr class="watch">
+        <td class="market-tag">WIN</td>
+        <td>kft</td>
+        <td><span class="pick">Hale Jr, Blaine</span></td>
+        <td class="num odds">+50000</td>
+        <td class="num">0.4%</td>
+        <td class="num">253.16</td>
+        <td class="num ev">+97.9% <span class="chip">verify</span></td>
+        <td class="num">$0.98</td>
+      </tr>
+      <tr class="watch">
+        <td class="market-tag">TOP_5</td>
+        <td>kft</td>
+        <td><span class="pick">Gutschewski, Luke</span></td>
+        <td class="num odds">+9000</td>
+        <td class="num">2.1%</td>
+        <td class="num">46.99</td>
+        <td class="num ev">+93.7% <span class="chip">verify</span></td>
+        <td class="num">$5.20</td>
+      </tr>
+      <tr class="watch">
+        <td class="market-tag">TOP_5</td>
+        <td>kft</td>
+        <td><span class="pick">Marzilio, Vicente</span></td>
+        <td class="num odds">+13500</td>
+        <td class="num">1.4%</td>
+        <td class="num">70.63</td>
+        <td class="num ev">+92.5% <span class="chip">verify</span></td>
+        <td class="num">$3.43</td>
+      </tr>
+      <tr class="watch">
+        <td class="market-tag">TOP_5</td>
+        <td>kft</td>
+        <td><span class="pick">Celia, Ricardo</span></td>
+        <td class="num odds">+5500</td>
+        <td class="num">3.4%</td>
+        <td class="num">29.09</td>
+        <td class="num ev">+92.5% <span class="chip">verify</span></td>
+        <td class="num">$8.41</td>
+      </tr>
+      <tr class="watch">
+        <td class="market-tag">TOP_5</td>
+        <td>kft</td>
+        <td><span class="pick">Overton, Jeff</span></td>
+        <td class="num odds">+52500</td>
+        <td class="num">0.4%</td>
+        <td class="num">273.28</td>
+        <td class="num ev">+92.5% <span class="chip">verify</span></td>
+        <td class="num">$0.88</td>
+      </tr>
+      <tr class="watch">
+        <td class="market-tag">TOP_5</td>
+        <td>kft</td>
+        <td><span class="pick">White, Brett</span></td>
+        <td class="num odds">+11000</td>
+        <td class="num">1.6%</td>
+        <td class="num">63.68</td>
+        <td class="num ev">+74.3% <span class="chip">verify</span></td>
+        <td class="num">$3.38</td>
+      </tr>
+      <tr class="watch">
+        <td class="market-tag">TOP_10</td>
+        <td>kft</td>
+        <td><span class="pick">Welch, Patrick</span></td>
+        <td class="num odds">+3200</td>
+        <td class="num">5.0%</td>
+        <td class="num">19.88</td>
+        <td class="num ev">+66.0% <span class="chip">verify</span></td>
+        <td class="num">$10.31</td>
+      </tr>
+      <tr class="watch">
+        <td class="market-tag">WIN</td>
+        <td>kft</td>
+        <td><span class="pick">Welch, Patrick</span></td>
+        <td class="num odds">+40000</td>
+        <td class="num">0.4%</td>
+        <td class="num">242.91</td>
+        <td class="num ev">+65.1% <span class="chip">verify</span></td>
+        <td class="num">$0.81</td>
+      </tr>
+      <tr class="watch">
+        <td class="market-tag">TOP_5</td>
+        <td>kft</td>
+        <td><span class="pick">Maichon, Phichaksn</span></td>
+        <td class="num odds">+6500</td>
+        <td class="num">2.5%</td>
+        <td class="num">40.06</td>
+        <td class="num ev">+64.8% <span class="chip">verify</span></td>
+        <td class="num">$4.98</td>
+      </tr>
+      <tr class="watch">
+        <td class="market-tag">WIN</td>
+        <td>kft</td>
+        <td><span class="pick">Gutschewski, Luke</span></td>
+        <td class="num odds">+40000</td>
+        <td class="num">0.4%</td>
+        <td class="num">245.90</td>
+        <td class="num ev">+63.1% <span class="chip">verify</span></td>
+        <td class="num">$0.79</td>
+      </tr>
+      <tr class="watch">
+        <td class="market-tag">TOP_10</td>
+        <td>kft</td>
+        <td><span class="pick">Marzilio, Vicente</span></td>
+        <td class="num odds">+5000</td>
+        <td class="num">3.2%</td>
+        <td class="num">31.38</td>
+        <td class="num ev">+62.5% <span class="chip">verify</span></td>
+        <td class="num">$6.25</td>
+      </tr>
+      <tr class="watch">
+        <td class="market-tag">TOP_5</td>
+        <td>kft</td>
+        <td><span class="pick">Solomon, Jacob</span></td>
+        <td class="num odds">+11000</td>
+        <td class="num">1.4%</td>
+        <td class="num">69.32</td>
+        <td class="num ev">+60.1% <span class="chip">verify</span></td>
+        <td class="num">$2.73</td>
+      </tr>
+      <tr class="watch">
+        <td class="market-tag">WIN</td>
+        <td>kft</td>
+        <td><span class="pick">Marzilio, Vicente</span></td>
+        <td class="num odds">+75000</td>
+        <td class="num">0.2%</td>
+        <td class="num">472.44</td>
+        <td class="num ev">+59.0% <span class="chip">verify</span></td>
+        <td class="num">$0.39</td>
+      </tr>
+      <tr class="watch">
+        <td class="market-tag">TOP_5</td>
+        <td>kft</td>
+        <td><span class="pick">Cone, Trevor</span></td>
+        <td class="num odds">+5500</td>
+        <td class="num">2.8%</td>
+        <td class="num">35.72</td>
+        <td class="num ev">+56.8% <span class="chip">verify</span></td>
+        <td class="num">$5.16</td>
+      </tr>
+      <tr class="watch">
+        <td class="market-tag">TOP_20</td>
+        <td>kft</td>
+        <td><span class="pick">Hale Jr, Blaine</span></td>
+        <td class="num odds">+1400</td>
+        <td class="num">10.4%</td>
+        <td class="num">9.62</td>
+        <td class="num ev">+55.9% <span class="chip">verify</span></td>
+        <td class="num">$19.95</td>
+      </tr>
+      <tr class="watch">
+        <td class="market-tag">TOP_10</td>
+        <td>kft</td>
+        <td><span class="pick">Humphrey, Theo</span></td>
+        <td class="num odds">+3200</td>
+        <td class="num">4.7%</td>
+        <td class="num">21.18</td>
+        <td class="num ev">+55.8% <span class="chip">verify</span></td>
+        <td class="num">$8.72</td>
+      </tr>
+      <tr class="watch">
+        <td class="market-tag">TOP_10</td>
+        <td>kft</td>
+        <td><span class="pick">Celia, Ricardo</span></td>
+        <td class="num odds">+2100</td>
+        <td class="num">7.1%</td>
+        <td class="num">14.18</td>
+        <td class="num ev">+55.1% <span class="chip">verify</span></td>
+        <td class="num">$13.13</td>
+      </tr>
+      <tr class="watch">
+        <td class="market-tag">TOP_5</td>
+        <td>kft</td>
+        <td><span class="pick">Hadwin, Adam</span></td>
+        <td class="num odds">+3400</td>
+        <td class="num">4.3%</td>
+        <td class="num">23.00</td>
+        <td class="num ev">+52.2% <span class="chip">verify</span></td>
+        <td class="num">$7.68</td>
+      </tr>
+      <tr class="watch">
+        <td class="market-tag">TOP_10</td>
+        <td>kft</td>
+        <td><span class="pick">Gutschewski, Luke</span></td>
+        <td class="num odds">+3200</td>
+        <td class="num">4.6%</td>
+        <td class="num">21.70</td>
+        <td class="num ev">+52.1% <span class="chip">verify</span></td>
+        <td class="num">$8.14</td>
+      </tr>
+      <tr class="watch">
+        <td class="market-tag">TOP_10</td>
+        <td>kft</td>
+        <td><span class="pick">Solomon, Jacob</span></td>
+        <td class="num odds">+4100</td>
+        <td class="num">3.5%</td>
+        <td class="num">28.22</td>
+        <td class="num ev">+48.8% <span class="chip">verify</span></td>
+        <td class="num">$5.95</td>
+      </tr>
+      <tr class="watch">
+        <td class="market-tag">WIN</td>
+        <td>kft</td>
+        <td><span class="pick">Celia, Ricardo</span></td>
+        <td class="num odds">+25000</td>
+        <td class="num">0.6%</td>
+        <td class="num">172.41</td>
+        <td class="num ev">+45.6% <span class="chip">verify</span></td>
+        <td class="num">$0.91</td>
+      </tr>
+      <tr class="watch">
+        <td class="market-tag">WIN</td>
+        <td>kft</td>
+        <td><span class="pick">Humphrey, Theo</span></td>
+        <td class="num odds">+40000</td>
+        <td class="num">0.4%</td>
+        <td class="num">277.78</td>
+        <td class="num ev">+44.4% <span class="chip">verify</span></td>
+        <td class="num">$0.55</td>
+      </tr>
+      <tr class="watch">
+        <td class="market-tag">TOP_10</td>
+        <td>kft</td>
+        <td><span class="pick">White, Brett</span></td>
+        <td class="num odds">+4100</td>
+        <td class="num">3.4%</td>
+        <td class="num">29.23</td>
+        <td class="num ev">+43.7% <span class="chip">verify</span></td>
+        <td class="num">$5.33</td>
+      </tr>
+      <tr class="watch">
+        <td class="market-tag">TOP_10</td>
+        <td>kft</td>
+        <td><span class="pick">Maichon, Phichaksn</span></td>
+        <td class="num odds">+2600</td>
+        <td class="num">5.3%</td>
+        <td class="num">18.80</td>
+        <td class="num ev">+43.6% <span class="chip">verify</span></td>
+        <td class="num">$8.39</td>
+      </tr>
+      <tr class="watch">
+        <td class="market-tag">TOP_5</td>
+        <td>kft</td>
+        <td><span class="pick">Sargent, Billy Tom</span></td>
+        <td class="num odds">+11000</td>
+        <td class="num">1.3%</td>
+        <td class="num">77.34</td>
+        <td class="num ev">+43.5% <span class="chip">verify</span></td>
+        <td class="num">$1.98</td>
+      </tr>
+      <tr class="watch">
+        <td class="market-tag">WIN</td>
+        <td>kft</td>
+        <td><span class="pick">Hadwin, Adam</span></td>
+        <td class="num odds">+17500</td>
+        <td class="num">0.8%</td>
+        <td class="num">122.95</td>
+        <td class="num ev">+43.1% <span class="chip">verify</span></td>
+        <td class="num">$1.23</td>
+      </tr>
+      <tr class="watch">
+        <td class="market-tag">TOP_20</td>
+        <td>kft</td>
+        <td><span class="pick">Welch, Patrick</span></td>
+        <td class="num odds">+1150</td>
+        <td class="num">11.3%</td>
+        <td class="num">8.85</td>
+        <td class="num ev">+41.2% <span class="chip">verify</span></td>
+        <td class="num">$17.93</td>
+      </tr>
+      <tr class="watch">
+        <td class="market-tag">TOP_20</td>
+        <td>kft</td>
+        <td><span class="pick">Marzilio, Vicente</span></td>
+        <td class="num odds">+1800</td>
+        <td class="num">7.4%</td>
+        <td class="num">13.57</td>
+        <td class="num ev">+40.0% <span class="chip">verify</span></td>
+        <td class="num">$11.11</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_20</td>
+        <td>kft</td>
+        <td><span class="pick">Celia, Ricardo</span></td>
+        <td class="num odds">+850</td>
+        <td class="num">14.5%</td>
+        <td class="num">6.92</td>
+        <td class="num ev">+37.4%</td>
+        <td class="num">$21.98</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">WIN</td>
+        <td>kft</td>
+        <td><span class="pick">Cone, Trevor</span></td>
+        <td class="num odds">+25000</td>
+        <td class="num">0.5%</td>
+        <td class="num">185.19</td>
+        <td class="num ev">+35.5%</td>
+        <td class="num">$0.71</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_10</td>
+        <td>kft</td>
+        <td><span class="pick">Hadwin, Adam</span></td>
+        <td class="num odds">+1450</td>
+        <td class="num">8.7%</td>
+        <td class="num">11.53</td>
+        <td class="num ev">+34.5%</td>
+        <td class="num">$11.89</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_5</td>
+        <td>kft</td>
+        <td><span class="pick">Thornberry, Braden</span></td>
+        <td class="num odds">+11000</td>
+        <td class="num">1.2%</td>
+        <td class="num">82.78</td>
+        <td class="num ev">+34.1%</td>
+        <td class="num">$1.55</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_5</td>
+        <td>kft</td>
+        <td><span class="pick">Meisel, Marshall</span></td>
+        <td class="num odds">+11000</td>
+        <td class="num">1.2%</td>
+        <td class="num">84.34</td>
+        <td class="num ev">+31.6%</td>
+        <td class="num">$1.44</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_10</td>
+        <td>kft</td>
+        <td><span class="pick">Cone, Trevor</span></td>
+        <td class="num odds">+2100</td>
+        <td class="num">5.8%</td>
+        <td class="num">17.15</td>
+        <td class="num ev">+28.3%</td>
+        <td class="num">$6.73</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_5</td>
+        <td>kft</td>
+        <td><span class="pick">Garcia, Jorge</span></td>
+        <td class="num odds">+5500</td>
+        <td class="num">2.3%</td>
+        <td class="num">43.81</td>
+        <td class="num ev">+27.8%</td>
+        <td class="num">$2.53</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_5</td>
+        <td>kft</td>
+        <td><span class="pick">Tway, Kevin</span></td>
+        <td class="num odds">+5500</td>
+        <td class="num">2.3%</td>
+        <td class="num">43.82</td>
+        <td class="num ev">+27.8%</td>
+        <td class="num">$2.53</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_5</td>
+        <td>kft</td>
+        <td><span class="pick">Chirravuri, Mahanth</span></td>
+        <td class="num odds">+3700</td>
+        <td class="num">3.4%</td>
+        <td class="num">29.76</td>
+        <td class="num ev">+27.7%</td>
+        <td class="num">$3.74</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">WIN</td>
+        <td>kft</td>
+        <td><span class="pick">Chirravuri, Mahanth</span></td>
+        <td class="num odds">+20000</td>
+        <td class="num">0.6%</td>
+        <td class="num">157.48</td>
+        <td class="num ev">+27.6%</td>
+        <td class="num">$0.69</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_20</td>
+        <td>kft</td>
+        <td><span class="pick">Gutschewski, Luke</span></td>
+        <td class="num odds">+1150</td>
+        <td class="num">10.2%</td>
+        <td class="num">9.80</td>
+        <td class="num ev">+27.5%</td>
+        <td class="num">$11.95</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_20</td>
+        <td>kft</td>
+        <td><span class="pick">Humphrey, Theo</span></td>
+        <td class="num odds">+1150</td>
+        <td class="num">10.1%</td>
+        <td class="num">9.91</td>
+        <td class="num ev">+26.2%</td>
+        <td class="num">$11.39</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">FRL</td>
+        <td>kft</td>
+        <td><span class="pick">Hale Jr, Blaine</span></td>
+        <td class="num odds">+20000</td>
+        <td class="num">0.6%</td>
+        <td class="num">159.57</td>
+        <td class="num ev">+26.0%</td>
+        <td class="num">$0.65</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">WIN</td>
+        <td>kft</td>
+        <td><span class="pick">Maichon, Phichaksn</span></td>
+        <td class="num odds">+30000</td>
+        <td class="num">0.4%</td>
+        <td class="num">241.94</td>
+        <td class="num ev">+24.4%</td>
+        <td class="num">$0.41</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_10</td>
+        <td>kft</td>
+        <td><span class="pick">Chirravuri, Mahanth</span></td>
+        <td class="num odds">+1650</td>
+        <td class="num">7.1%</td>
+        <td class="num">14.18</td>
+        <td class="num ev">+23.4%</td>
+        <td class="num">$7.09</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_20</td>
+        <td>kft</td>
+        <td><span class="pick">Solomon, Jacob</span></td>
+        <td class="num odds">+1400</td>
+        <td class="num">8.2%</td>
+        <td class="num">12.17</td>
+        <td class="num ev">+23.3%</td>
+        <td class="num">$8.31</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_5</td>
+        <td>kft</td>
+        <td><span class="pick">Blaum, Ryan</span></td>
+        <td class="num odds">+7500</td>
+        <td class="num">1.6%</td>
+        <td class="num">61.69</td>
+        <td class="num ev">+23.2%</td>
+        <td class="num">$1.55</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_10</td>
+        <td>kft</td>
+        <td><span class="pick">Sargent, Billy Tom</span></td>
+        <td class="num odds">+4100</td>
+        <td class="num">2.9%</td>
+        <td class="num">34.38</td>
+        <td class="num ev">+22.2%</td>
+        <td class="num">$2.70</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_20</td>
+        <td>kft</td>
+        <td><span class="pick">Maichon, Phichaksn</span></td>
+        <td class="num odds">+1000</td>
+        <td class="num">11.1%</td>
+        <td class="num">9.02</td>
+        <td class="num ev">+21.9%</td>
+        <td class="num">$10.97</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_20</td>
+        <td>kft</td>
+        <td><span class="pick">Hadwin, Adam</span></td>
+        <td class="num odds">+600</td>
+        <td class="num">17.4%</td>
+        <td class="num">5.75</td>
+        <td class="num ev">+21.7%</td>
+        <td class="num">$18.11</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_5</td>
+        <td>kft</td>
+        <td><span class="pick">Phillips, Trent</span></td>
+        <td class="num odds">+2600</td>
+        <td class="num">4.5%</td>
+        <td class="num">22.24</td>
+        <td class="num ev">+21.4%</td>
+        <td class="num">$4.12</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_5</td>
+        <td>kft</td>
+        <td><span class="pick">Hastings, Justin</span></td>
+        <td class="num odds">+13500</td>
+        <td class="num">0.9%</td>
+        <td class="num">112.03</td>
+        <td class="num ev">+21.4%</td>
+        <td class="num">$0.79</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_5</td>
+        <td>kft</td>
+        <td><span class="pick">Nicholas, James</span></td>
+        <td class="num odds">+3700</td>
+        <td class="num">3.1%</td>
+        <td class="num">31.82</td>
+        <td class="num ev">+19.4%</td>
+        <td class="num">$2.62</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">WIN</td>
+        <td>kft</td>
+        <td><span class="pick">White, Brett</span></td>
+        <td class="num odds">+50000</td>
+        <td class="num">0.2%</td>
+        <td class="num">419.58</td>
+        <td class="num ev">+19.4%</td>
+        <td class="num">$0.19</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_10</td>
+        <td>kft</td>
+        <td><span class="pick">Blaum, Ryan</span></td>
+        <td class="num odds">+3100</td>
+        <td class="num">3.7%</td>
+        <td class="num">26.95</td>
+        <td class="num ev">+18.7%</td>
+        <td class="num">$3.02</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_10</td>
+        <td>kft</td>
+        <td><span class="pick">Thornberry, Braden</span></td>
+        <td class="num odds">+4100</td>
+        <td class="num">2.8%</td>
+        <td class="num">35.37</td>
+        <td class="num ev">+18.7%</td>
+        <td class="num">$2.28</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_10</td>
+        <td>kft</td>
+        <td><span class="pick">Phillips, Trent</span></td>
+        <td class="num odds">+1200</td>
+        <td class="num">9.1%</td>
+        <td class="num">11.01</td>
+        <td class="num ev">+18.1%</td>
+        <td class="num">$7.53</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_10</td>
+        <td>kft</td>
+        <td><span class="pick">Overton, Jeff</span></td>
+        <td class="num odds">+12500</td>
+        <td class="num">0.9%</td>
+        <td class="num">107.12</td>
+        <td class="num ev">+17.6%</td>
+        <td class="num">$0.71</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_20</td>
+        <td>kft</td>
+        <td><span class="pick">White, Brett</span></td>
+        <td class="num odds">+1400</td>
+        <td class="num">7.8%</td>
+        <td class="num">12.90</td>
+        <td class="num ev">+16.3%</td>
+        <td class="num">$5.82</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_20</td>
+        <td>kft</td>
+        <td><span class="pick">Cone, Trevor</span></td>
+        <td class="num odds">+850</td>
+        <td class="num">12.2%</td>
+        <td class="num">8.18</td>
+        <td class="num ev">+16.1%</td>
+        <td class="num">$9.48</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">FRL</td>
+        <td>kft</td>
+        <td><span class="pick">Humphrey, Theo</span></td>
+        <td class="num odds">+19000</td>
+        <td class="num">0.6%</td>
+        <td class="num">165.75</td>
+        <td class="num ev">+15.2%</td>
+        <td class="num">$0.40</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_5</td>
+        <td>kft</td>
+        <td><span class="pick">Sugiura, Yuta</span></td>
+        <td class="num odds">+3700</td>
+        <td class="num">3.0%</td>
+        <td class="num">33.36</td>
+        <td class="num ev">+13.9%</td>
+        <td class="num">$1.88</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">FRL</td>
+        <td>kft</td>
+        <td><span class="pick">Welch, Patrick</span></td>
+        <td class="num odds">+19000</td>
+        <td class="num">0.6%</td>
+        <td class="num">168.07</td>
+        <td class="num ev">+13.7%</td>
+        <td class="num">$0.36</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_5</td>
+        <td>kft</td>
+        <td><span class="pick">Andersen, Mason</span></td>
+        <td class="num odds">+2100</td>
+        <td class="num">5.2%</td>
+        <td class="num">19.37</td>
+        <td class="num ev">+13.6%</td>
+        <td class="num">$3.23</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_5</td>
+        <td>kft</td>
+        <td><span class="pick">Alexander, Tyson</span></td>
+        <td class="num odds">+11000</td>
+        <td class="num">1.0%</td>
+        <td class="num">97.86</td>
+        <td class="num ev">+13.4%</td>
+        <td class="num">$0.61</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_10</td>
+        <td>kft</td>
+        <td><span class="pick">Nicholas, James</span></td>
+        <td class="num odds">+1650</td>
+        <td class="num">6.5%</td>
+        <td class="num">15.48</td>
+        <td class="num ev">+13.0%</td>
+        <td class="num">$3.95</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_5</td>
+        <td>kft</td>
+        <td><span class="pick">Choi, Sam</span></td>
+        <td class="num odds">+5500</td>
+        <td class="num">2.0%</td>
+        <td class="num">49.64</td>
+        <td class="num ev">+12.8%</td>
+        <td class="num">$1.17</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_20</td>
+        <td>kft</td>
+        <td><span class="pick">Chirravuri, Mahanth</span></td>
+        <td class="num odds">+675</td>
+        <td class="num">14.5%</td>
+        <td class="num">6.88</td>
+        <td class="num ev">+12.6%</td>
+        <td class="num">$9.36</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">WIN</td>
+        <td>kft</td>
+        <td><span class="pick">Nicholas, James</span></td>
+        <td class="num odds">+20000</td>
+        <td class="num">0.6%</td>
+        <td class="num">178.57</td>
+        <td class="num ev">+12.6%</td>
+        <td class="num">$0.31</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">WIN</td>
+        <td>kft</td>
+        <td><span class="pick">Creel, Joshua</span></td>
+        <td class="num odds">+50000</td>
+        <td class="num">0.2%</td>
+        <td class="num">447.76</td>
+        <td class="num ev">+11.9%</td>
+        <td class="num">$0.12</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_5</td>
+        <td>kft</td>
+        <td><span class="pick">Trace, Travis</span></td>
+        <td class="num odds">+2100</td>
+        <td class="num">5.1%</td>
+        <td class="num">19.67</td>
+        <td class="num ev">+11.8%</td>
+        <td class="num">$2.81</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_5</td>
+        <td>kft</td>
+        <td><span class="pick">Hardy, Nick</span></td>
+        <td class="num odds">+3700</td>
+        <td class="num">2.9%</td>
+        <td class="num">34.25</td>
+        <td class="num ev">+10.9%</td>
+        <td class="num">$1.48</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_10</td>
+        <td>kft</td>
+        <td><span class="pick">Meisel, Marshall</span></td>
+        <td class="num odds">+4100</td>
+        <td class="num">2.6%</td>
+        <td class="num">38.02</td>
+        <td class="num ev">+10.5%</td>
+        <td class="num">$1.28</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">WIN</td>
+        <td>kft</td>
+        <td><span class="pick">Tway, Kevin</span></td>
+        <td class="num odds">+25000</td>
+        <td class="num">0.4%</td>
+        <td class="num">227.27</td>
+        <td class="num ev">+10.4%</td>
+        <td class="num">$0.21</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">WIN</td>
+        <td>kft</td>
+        <td><span class="pick">Hastings, Justin</span></td>
+        <td class="num odds">+75000</td>
+        <td class="num">0.1%</td>
+        <td class="num">681.82</td>
+        <td class="num ev">+10.2%</td>
+        <td class="num">$0.07</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_10</td>
+        <td>kft</td>
+        <td><span class="pick">Sugiura, Yuta</span></td>
+        <td class="num odds">+1650</td>
+        <td class="num">6.3%</td>
+        <td class="num">15.92</td>
+        <td class="num ev">+9.9%</td>
+        <td class="num">$3.02</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_5</td>
+        <td>kft</td>
+        <td><span class="pick">Moldovan, Maxwell</span></td>
+        <td class="num odds">+5500</td>
+        <td class="num">2.0%</td>
+        <td class="num">51.11</td>
+        <td class="num ev">+9.6%</td>
+        <td class="num">$0.87</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_5</td>
+        <td>kft</td>
+        <td><span class="pick">Gilligan, Ian</span></td>
+        <td class="num odds">+1850</td>
+        <td class="num">5.6%</td>
+        <td class="num">17.84</td>
+        <td class="num ev">+9.3%</td>
+        <td class="num">$2.52</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_20</td>
+        <td>kft</td>
+        <td><span class="pick">Blaum, Ryan</span></td>
+        <td class="num odds">+1150</td>
+        <td class="num">8.7%</td>
+        <td class="num">11.48</td>
+        <td class="num ev">+8.9%</td>
+        <td class="num">$3.88</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_5</td>
+        <td>kft</td>
+        <td><span class="pick">Butler, John Marshall</span></td>
+        <td class="num odds">+2600</td>
+        <td class="num">4.0%</td>
+        <td class="num">24.85</td>
+        <td class="num ev">+8.7%</td>
+        <td class="num">$1.66</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_10</td>
+        <td>kft</td>
+        <td><span class="pick">Tway, Kevin</span></td>
+        <td class="num odds">+2100</td>
+        <td class="num">4.9%</td>
+        <td class="num">20.26</td>
+        <td class="num ev">+8.6%</td>
+        <td class="num">$2.05</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">WIN</td>
+        <td>kft</td>
+        <td><span class="pick">Phillips, Trent</span></td>
+        <td class="num odds">+12500</td>
+        <td class="num">0.9%</td>
+        <td class="num">116.28</td>
+        <td class="num ev">+8.4%</td>
+        <td class="num">$0.33</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_10</td>
+        <td>kft</td>
+        <td><span class="pick">Andersen, Mason</span></td>
+        <td class="num odds">+950</td>
+        <td class="num">10.3%</td>
+        <td class="num">9.71</td>
+        <td class="num ev">+8.2%</td>
+        <td class="num">$4.29</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_5</td>
+        <td>kft</td>
+        <td><span class="pick">Gibson, Rhein</span></td>
+        <td class="num odds">+11000</td>
+        <td class="num">1.0%</td>
+        <td class="num">102.67</td>
+        <td class="num ev">+8.1%</td>
+        <td class="num">$0.37</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">WIN</td>
+        <td>kft</td>
+        <td><span class="pick">Trace, Travis</span></td>
+        <td class="num odds">+10000</td>
+        <td class="num">1.1%</td>
+        <td class="num">93.60</td>
+        <td class="num ev">+7.9%</td>
+        <td class="num">$0.40</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_5</td>
+        <td>kft</td>
+        <td><span class="pick">Macdonald, Stuart</span></td>
+        <td class="num odds">+5500</td>
+        <td class="num">1.9%</td>
+        <td class="num">51.93</td>
+        <td class="num ev">+7.8%</td>
+        <td class="num">$0.71</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_10</td>
+        <td>kft</td>
+        <td><span class="pick">Hardy, Nick</span></td>
+        <td class="num odds">+1650</td>
+        <td class="num">6.2%</td>
+        <td class="num">16.24</td>
+        <td class="num ev">+7.8%</td>
+        <td class="num">$2.35</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">WIN</td>
+        <td>kft</td>
+        <td><span class="pick">Solomon, Jacob</span></td>
+        <td class="num odds">+50000</td>
+        <td class="num">0.2%</td>
+        <td class="num">465.12</td>
+        <td class="num ev">+7.7%</td>
+        <td class="num">$0.08</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_20</td>
+        <td>kft</td>
+        <td><span class="pick">Phillips, Trent</span></td>
+        <td class="num odds">+500</td>
+        <td class="num">17.9%</td>
+        <td class="num">5.58</td>
+        <td class="num ev">+7.5%</td>
+        <td class="num">$7.55</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">ROUND_MATCHUPS</td>
+        <td>pga</td>
+        <td><span class="pick">Poston, J.T.</span> <span class="opp">vs Koepka, Brooks</span></td>
+        <td class="num odds">-105</td>
+        <td class="num">54.8%</td>
+        <td class="num">1.82</td>
+        <td class="num ev">+6.9%</td>
+        <td class="num">$36.32</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_10</td>
+        <td>kft</td>
+        <td><span class="pick">Garcia, Jorge</span></td>
+        <td class="num odds">+2100</td>
+        <td class="num">4.9%</td>
+        <td class="num">20.60</td>
+        <td class="num ev">+6.8%</td>
+        <td class="num">$1.61</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_5</td>
+        <td>kft</td>
+        <td><span class="pick">Knox, Russell</span></td>
+        <td class="num odds">+9000</td>
+        <td class="num">1.2%</td>
+        <td class="num">85.24</td>
+        <td class="num ev">+6.8%</td>
+        <td class="num">$0.38</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_5</td>
+        <td>kft</td>
+        <td><span class="pick">Kim, Chan</span></td>
+        <td class="num odds">+1550</td>
+        <td class="num">6.5%</td>
+        <td class="num">15.48</td>
+        <td class="num ev">+6.6%</td>
+        <td class="num">$2.13</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_5</td>
+        <td>kft</td>
+        <td><span class="pick">Duncan, Austin</span></td>
+        <td class="num odds">+9000</td>
+        <td class="num">1.2%</td>
+        <td class="num">85.69</td>
+        <td class="num ev">+6.2%</td>
+        <td class="num">$0.34</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_10</td>
+        <td>kft</td>
+        <td><span class="pick">Butler, John Marshall</span></td>
+        <td class="num odds">+1200</td>
+        <td class="num">8.1%</td>
+        <td class="num">12.35</td>
+        <td class="num ev">+5.3%</td>
+        <td class="num">$2.19</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">WIN</td>
+        <td>kft</td>
+        <td><span class="pick">Thornberry, Braden</span></td>
+        <td class="num odds">+50000</td>
+        <td class="num">0.2%</td>
+        <td class="num">476.19</td>
+        <td class="num ev">+5.2%</td>
+        <td class="num">$0.05</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_10</td>
+        <td>kft</td>
+        <td><span class="pick">Moldovan, Maxwell</span></td>
+        <td class="num odds">+2300</td>
+        <td class="num">4.4%</td>
+        <td class="num">22.90</td>
+        <td class="num ev">+4.8%</td>
+        <td class="num">$1.04</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">FRL</td>
+        <td>kft</td>
+        <td><span class="pick">Gutschewski, Luke</span></td>
+        <td class="num odds">+19000</td>
+        <td class="num">0.5%</td>
+        <td class="num">182.37</td>
+        <td class="num ev">+4.7%</td>
+        <td class="num">$0.12</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">WIN</td>
+        <td>kft</td>
+        <td><span class="pick">Sugiura, Yuta</span></td>
+        <td class="num odds">+20000</td>
+        <td class="num">0.5%</td>
+        <td class="num">192.31</td>
+        <td class="num ev">+4.5%</td>
+        <td class="num">$0.11</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_10</td>
+        <td>kft</td>
+        <td><span class="pick">Hastings, Justin</span></td>
+        <td class="num odds">+5000</td>
+        <td class="num">2.0%</td>
+        <td class="num">48.79</td>
+        <td class="num ev">+4.5%</td>
+        <td class="num">$0.45</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_10</td>
+        <td>kft</td>
+        <td><span class="pick">Trace, Travis</span></td>
+        <td class="num odds">+950</td>
+        <td class="num">9.9%</td>
+        <td class="num">10.06</td>
+        <td class="num ev">+4.4%</td>
+        <td class="num">$2.33</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_20</td>
+        <td>kft</td>
+        <td><span class="pick">Sugiura, Yuta</span></td>
+        <td class="num odds">+675</td>
+        <td class="num">13.4%</td>
+        <td class="num">7.48</td>
+        <td class="num ev">+3.6%</td>
+        <td class="num">$2.69</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_5</td>
+        <td>kft</td>
+        <td><span class="pick">Sewell, Chad</span></td>
+        <td class="num odds">+6500</td>
+        <td class="num">1.6%</td>
+        <td class="num">63.76</td>
+        <td class="num ev">+3.5%</td>
+        <td class="num">$0.27</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_5</td>
+        <td>kft</td>
+        <td><span class="pick">Duncan, Tyler</span></td>
+        <td class="num odds">+3400</td>
+        <td class="num">2.9%</td>
+        <td class="num">33.97</td>
+        <td class="num ev">+3.0%</td>
+        <td class="num">$0.45</td>
+      </tr>
+      <tr class="">
+        <td class="market-tag">TOP_10</td>
+        <td>kft</td>
+        <td><span class="pick">Choi, Sam</span></td>
+        <td class="num odds">+2300</td>
+        <td class="num">4.3%</td>
+        <td class="num">23.30</td>
+        <td class="num ev">+3.0%</td>
+        <td class="num">$0.66</td>
+      </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">
+      <b>Informational only, not betting advice.</b> Rows with a <span class="chip">verify</span> tag
+      carry EV over 40% &mdash; almost always a longshot where a tiny error in DataGolf's probability
+      estimate creates a huge apparent edge, or a book quietly leaving a thin line unattended. Check the
+      price on DataGolf's own site and on Bet365 directly before betting those; treat the rest as a
+      starting point, not gospel.
+    </p>
+  </section>
 
-  <div id="new-section-container"></div>
+  <section id="panel-sim" class="panel">
+    <p class="tagline" style="margin-bottom:1.4rem;">Only the strongest signals get paper-bet here: 30%+ EV on outright
+      markets, 5%+ on matchups/3-balls &mdash; not every pick the board above shows. 43 bets logged total.
+      Tracking since 2026-08-05.</p>
+    <div class="stats">
+    <div class="stat-card">
+      <div class="stat-label">Today</div>
+      <div class="stat-profit flat">+0.00</div>
+      <div class="stat-row"><span>0-0-0</span><span>&mdash; win rate</span></div>
+      <div class="stat-row"><span>$0 staked</span><span>&mdash; ROI</span></div>
+      <div class="stat-pending">$40 pending</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">This week</div>
+      <div class="stat-profit flat">+0.00</div>
+      <div class="stat-row"><span>0-0-0</span><span>&mdash; win rate</span></div>
+      <div class="stat-row"><span>$0 staked</span><span>&mdash; ROI</span></div>
+      <div class="stat-pending">$322 pending</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">This month</div>
+      <div class="stat-profit flat">+0.00</div>
+      <div class="stat-row"><span>0-0-0</span><span>&mdash; win rate</span></div>
+      <div class="stat-row"><span>$0 staked</span><span>&mdash; ROI</span></div>
+      <div class="stat-pending">$322 pending</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">This year</div>
+      <div class="stat-profit flat">+0.00</div>
+      <div class="stat-row"><span>0-0-0</span><span>&mdash; win rate</span></div>
+      <div class="stat-row"><span>$0 staked</span><span>&mdash; ROI</span></div>
+      <div class="stat-pending">$322 pending</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">All-time</div>
+      <div class="stat-profit flat">+0.00</div>
+      <div class="stat-row"><span>0-0-0</span><span>&mdash; win rate</span></div>
+      <div class="stat-row"><span>$0 staked</span><span>&mdash; ROI</span></div>
+      <div class="stat-pending">$322 pending</div>
+    </div>
+    </div>
+    
+    <h2 class="section-title">Day by day</h2>
+    <div class="board-scroll rollup">
+      <table>
+        <thead>
+          <tr><th>Period</th><th class="num">Bets</th><th class="num">W-L-P</th>
+              <th class="num">Win%</th><th class="num">Staked</th><th class="num">Profit (ROI)</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+              <td>2026-08-07</td>
+              <td class="num">4</td>
+              <td class="num">0-0-0</td>
+              <td class="num">&mdash;</td>
+              <td class="num">$0 <span class="opp">($40 pending)</span></td>
+              <td class="num payout-push">+0.00 (&mdash;)</td>
+            </tr>
+            <tr>
+              <td>2026-08-05</td>
+              <td class="num">39</td>
+              <td class="num">0-0-0</td>
+              <td class="num">&mdash;</td>
+              <td class="num">$0 <span class="opp">($282 pending)</span></td>
+              <td class="num payout-push">+0.00 (&mdash;)</td>
+            </tr>
+        </tbody>
+      </table>
+    </div>
+    
+    <h2 class="section-title">Week by week</h2>
+    <div class="board-scroll rollup">
+      <table>
+        <thead>
+          <tr><th>Period</th><th class="num">Bets</th><th class="num">W-L-P</th>
+              <th class="num">Win%</th><th class="num">Staked</th><th class="num">Profit (ROI)</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+              <td>Week of 2026-08-03</td>
+              <td class="num">43</td>
+              <td class="num">0-0-0</td>
+              <td class="num">&mdash;</td>
+              <td class="num">$0 <span class="opp">($322 pending)</span></td>
+              <td class="num payout-push">+0.00 (&mdash;)</td>
+            </tr>
+        </tbody>
+      </table>
+    </div>
+    
+    <h2 class="section-title">Month by month</h2>
+    <div class="board-scroll rollup">
+      <table>
+        <thead>
+          <tr><th>Period</th><th class="num">Bets</th><th class="num">W-L-P</th>
+              <th class="num">Win%</th><th class="num">Staked</th><th class="num">Profit (ROI)</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+              <td>2026-08</td>
+              <td class="num">43</td>
+              <td class="num">0-0-0</td>
+              <td class="num">&mdash;</td>
+              <td class="num">$0 <span class="opp">($322 pending)</span></td>
+              <td class="num payout-push">+0.00 (&mdash;)</td>
+            </tr>
+        </tbody>
+      </table>
+    </div>
+    <h2 class="section-title">Full ledger</h2>
+    <div class="board-scroll">
+      <table>
+        <thead>
+          <tr><th>Placed</th><th>Market</th><th>Tour</th><th>Pick</th><th class="num">B365</th>
+              <th class="num">Stake</th><th>Status</th><th class="num">P/L</th></tr>
+        </thead>
+        <tbody>
+    <tr>
+      <td>2026-08-07</td>
+      <td class="market-tag">ROUND_MATCHUPS</td>
+      <td>pga</td>
+      <td>Poston, J.T. <span class="opp">vs Koepka, Brooks</span></td>
+      <td class="num odds">-105</td>
+      <td class="num">$36.32</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+    <tr>
+      <td>2026-08-07</td>
+      <td class="market-tag">TOP_5</td>
+      <td>kft</td>
+      <td>Meisel, Marshall</td>
+      <td class="num odds">+11000</td>
+      <td class="num">$1.44</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+    <tr>
+      <td>2026-08-07</td>
+      <td class="market-tag">TOP_5</td>
+      <td>kft</td>
+      <td>Thornberry, Braden</td>
+      <td class="num odds">+11000</td>
+      <td class="num">$1.55</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+    <tr>
+      <td>2026-08-07</td>
+      <td class="market-tag">TOP_5</td>
+      <td>kft</td>
+      <td>Overton, Jeff</td>
+      <td class="num odds">+52500</td>
+      <td class="num">$0.88</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+    <tr>
+      <td>2026-08-05</td>
+      <td class="market-tag">ROUND_MATCHUPS</td>
+      <td>alt</td>
+      <td>Niemann, Joaquin <span class="opp">vs Smith, Cameron</span></td>
+      <td class="num odds">-120</td>
+      <td class="num">$31.89</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+    <tr>
+      <td>2026-08-05</td>
+      <td class="market-tag">3_BALLS</td>
+      <td>pga</td>
+      <td>Mouw, William <span class="opp">vs Harman, Brian, Riley, Davis</span></td>
+      <td class="num odds">+210</td>
+      <td class="num">$13.75</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+    <tr>
+      <td>2026-08-05</td>
+      <td class="market-tag">TOP_20</td>
+      <td>kft</td>
+      <td>Celia, Ricardo</td>
+      <td class="num odds">+800</td>
+      <td class="num">$18.83</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+    <tr>
+      <td>2026-08-05</td>
+      <td class="market-tag">TOP_5</td>
+      <td>kft</td>
+      <td>Chirravuri, Mahanth</td>
+      <td class="num odds">+3800</td>
+      <td class="num">$4.09</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+    <tr>
+      <td>2026-08-05</td>
+      <td class="market-tag">TOP_10</td>
+      <td>kft</td>
+      <td>Hadwin, Adam</td>
+      <td class="num odds">+1450</td>
+      <td class="num">$11.89</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+    <tr>
+      <td>2026-08-05</td>
+      <td class="market-tag">WIN</td>
+      <td>kft</td>
+      <td>Cone, Trevor</td>
+      <td class="num odds">+25000</td>
+      <td class="num">$0.71</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+    <tr>
+      <td>2026-08-05</td>
+      <td class="market-tag">TOP_10</td>
+      <td>kft</td>
+      <td>White, Brett</td>
+      <td class="num odds">+3900</td>
+      <td class="num">$4.72</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+    <tr>
+      <td>2026-08-05</td>
+      <td class="market-tag">TOP_5</td>
+      <td>kft</td>
+      <td>Sargent, Billy Tom</td>
+      <td class="num odds">+10500</td>
+      <td class="num">$1.76</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+    <tr>
+      <td>2026-08-05</td>
+      <td class="market-tag">TOP_20</td>
+      <td>kft</td>
+      <td>Welch, Patrick</td>
+      <td class="num odds">+1150</td>
+      <td class="num">$17.93</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+    <tr>
+      <td>2026-08-05</td>
+      <td class="market-tag">TOP_10</td>
+      <td>kft</td>
+      <td>Solomon, Jacob</td>
+      <td class="num odds">+3900</td>
+      <td class="num">$5.35</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+    <tr>
+      <td>2026-08-05</td>
+      <td class="market-tag">TOP_5</td>
+      <td>kft</td>
+      <td>Cone, Trevor</td>
+      <td class="num odds">+5000</td>
+      <td class="num">$4.28</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+    <tr>
+      <td>2026-08-05</td>
+      <td class="market-tag">WIN</td>
+      <td>kft</td>
+      <td>Hadwin, Adam</td>
+      <td class="num odds">+17500</td>
+      <td class="num">$1.23</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+    <tr>
+      <td>2026-08-05</td>
+      <td class="market-tag">TOP_10</td>
+      <td>kft</td>
+      <td>Maichon, Phichaksn</td>
+      <td class="num odds">+2600</td>
+      <td class="num">$8.39</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+    <tr>
+      <td>2026-08-05</td>
+      <td class="market-tag">WIN</td>
+      <td>kft</td>
+      <td>Humphrey, Theo</td>
+      <td class="num odds">+40000</td>
+      <td class="num">$0.55</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+    <tr>
+      <td>2026-08-05</td>
+      <td class="market-tag">TOP_10</td>
+      <td>kft</td>
+      <td>Hastings, Justin</td>
+      <td class="num odds">+7000</td>
+      <td class="num">$3.25</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+    <tr>
+      <td>2026-08-05</td>
+      <td class="market-tag">WIN</td>
+      <td>kft</td>
+      <td>Celia, Ricardo</td>
+      <td class="num odds">+25000</td>
+      <td class="num">$0.91</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+    <tr>
+      <td>2026-08-05</td>
+      <td class="market-tag">TOP_10</td>
+      <td>kft</td>
+      <td>Gutschewski, Luke</td>
+      <td class="num odds">+3100</td>
+      <td class="num">$7.66</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+    <tr>
+      <td>2026-08-05</td>
+      <td class="market-tag">TOP_5</td>
+      <td>kft</td>
+      <td>Hadwin, Adam</td>
+      <td class="num odds">+3300</td>
+      <td class="num">$7.25</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+    <tr>
+      <td>2026-08-05</td>
+      <td class="market-tag">TOP_10</td>
+      <td>kft</td>
+      <td>Humphrey, Theo</td>
+      <td class="num odds">+3100</td>
+      <td class="num">$8.24</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+    <tr>
+      <td>2026-08-05</td>
+      <td class="market-tag">TOP_5</td>
+      <td>kft</td>
+      <td>Solomon, Jacob</td>
+      <td class="num odds">+10500</td>
+      <td class="num">$2.52</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+    <tr>
+      <td>2026-08-05</td>
+      <td class="market-tag">TOP_10</td>
+      <td>kft</td>
+      <td>Celia, Ricardo</td>
+      <td class="num odds">+2100</td>
+      <td class="num">$13.13</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+    <tr>
+      <td>2026-08-05</td>
+      <td class="market-tag">TOP_20</td>
+      <td>kft</td>
+      <td>Hale Jr, Blaine</td>
+      <td class="num odds">+1400</td>
+      <td class="num">$19.95</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+    <tr>
+      <td>2026-08-05</td>
+      <td class="market-tag">WIN</td>
+      <td>kft</td>
+      <td>Marzilio, Vicente</td>
+      <td class="num odds">+75000</td>
+      <td class="num">$0.39</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+    <tr>
+      <td>2026-08-05</td>
+      <td class="market-tag">TOP_10</td>
+      <td>kft</td>
+      <td>Welch, Patrick</td>
+      <td class="num odds">+3100</td>
+      <td class="num">$9.83</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+    <tr>
+      <td>2026-08-05</td>
+      <td class="market-tag">WIN</td>
+      <td>kft</td>
+      <td>Gutschewski, Luke</td>
+      <td class="num odds">+40000</td>
+      <td class="num">$0.79</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+    <tr>
+      <td>2026-08-05</td>
+      <td class="market-tag">TOP_5</td>
+      <td>kft</td>
+      <td>Maichon, Phichaksn</td>
+      <td class="num odds">+6500</td>
+      <td class="num">$4.98</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+    <tr>
+      <td>2026-08-05</td>
+      <td class="market-tag">WIN</td>
+      <td>kft</td>
+      <td>Welch, Patrick</td>
+      <td class="num odds">+40000</td>
+      <td class="num">$0.81</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+    <tr>
+      <td>2026-08-05</td>
+      <td class="market-tag">TOP_5</td>
+      <td>kft</td>
+      <td>White, Brett</td>
+      <td class="num odds">+10500</td>
+      <td class="num">$3.17</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+    <tr>
+      <td>2026-08-05</td>
+      <td class="market-tag">TOP_20</td>
+      <td>kft</td>
+      <td>Marzilio, Vicente</td>
+      <td class="num odds">+2200</td>
+      <td class="num">$15.79</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+    <tr>
+      <td>2026-08-05</td>
+      <td class="market-tag">TOP_5</td>
+      <td>kft</td>
+      <td>Gutschewski, Luke</td>
+      <td class="num odds">+8000</td>
+      <td class="num">$4.52</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+    <tr>
+      <td>2026-08-05</td>
+      <td class="market-tag">TOP_5</td>
+      <td>kft</td>
+      <td>Celia, Ricardo</td>
+      <td class="num odds">+5000</td>
+      <td class="num">$7.53</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+    <tr>
+      <td>2026-08-05</td>
+      <td class="market-tag">TOP_5</td>
+      <td>kft</td>
+      <td>Humphrey, Theo</td>
+      <td class="num odds">+8000</td>
+      <td class="num">$4.99</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+    <tr>
+      <td>2026-08-05</td>
+      <td class="market-tag">TOP_5</td>
+      <td>kft</td>
+      <td>Welch, Patrick</td>
+      <td class="num odds">+8000</td>
+      <td class="num">$5.55</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+    <tr>
+      <td>2026-08-05</td>
+      <td class="market-tag">TOP_10</td>
+      <td>kft</td>
+      <td>Hale Jr, Blaine</td>
+      <td class="num odds">+3900</td>
+      <td class="num">$11.90</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+    <tr>
+      <td>2026-08-05</td>
+      <td class="market-tag">WIN</td>
+      <td>kft</td>
+      <td>Hale Jr, Blaine</td>
+      <td class="num odds">+50000</td>
+      <td class="num">$0.98</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+    <tr>
+      <td>2026-08-05</td>
+      <td class="market-tag">TOP_5</td>
+      <td>kft</td>
+      <td>Hastings, Justin</td>
+      <td class="num odds">+22500</td>
+      <td class="num">$2.26</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+    <tr>
+      <td>2026-08-05</td>
+      <td class="market-tag">TOP_10</td>
+      <td>kft</td>
+      <td>Marzilio, Vicente</td>
+      <td class="num odds">+7000</td>
+      <td class="num">$9.02</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+    <tr>
+      <td>2026-08-05</td>
+      <td class="market-tag">TOP_5</td>
+      <td>kft</td>
+      <td>Hale Jr, Blaine</td>
+      <td class="num odds">+10500</td>
+      <td class="num">$6.52</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+    <tr>
+      <td>2026-08-05</td>
+      <td class="market-tag">TOP_5</td>
+      <td>kft</td>
+      <td>Marzilio, Vicente</td>
+      <td class="num odds">+22500</td>
+      <td class="num">$4.89</td>
+      <td class="status-pending">PENDING</td>
+      <td class="num payout-pending">&mdash;</td>
+    </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">
+      Stakes shown are exactly what the scanner recommended at pick time (flat, against the configured
+      $2,000 bankroll &mdash; not compounding). Grading uses DataGolf's own results data and is a documented
+      approximation of real bookmaker settlement rules, not exact for every edge case. "Pending" bets belong
+      to tournaments that haven't finished yet.
+    </p>
+  </section>
 
-  <div class="board-scroll">
-    <table>
-      <thead>
-        <tr>
-          <th>Market</th>
-          <th>Tour</th>
-          <th>Pick</th>
-          <th class="num">B365</th>
-          <th class="num">Model%</th>
-          <th class="num">Fair</th>
-          <th class="num">EV%</th>
-          <th class="num">Stake</th>
-        </tr>
-      </thead>
-      <tbody id="board-body">
-        <tr><td colspan="8" class="loading">Loading the current board&hellip;</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <p class="note">
-    <b>Informational only, not betting advice.</b> Rows with a <span class="chip">verify</span> tag
-    carry EV over 40% &mdash; almost always a longshot where a tiny error in DataGolf's probability
-    estimate creates a huge apparent edge, or a book quietly leaving a thin line unattended. Check the
-    price on DataGolf's own site and on Bet365 directly before betting those; treat the rest as a
-    starting point, not gospel. This page refreshes itself automatically about once a minute (the
-    underlying scan is cached for 60s, so rapid manual refreshes just return the same cached data).
-  </p>
+  <div class="snapshot-flag">&#9873; one-time snapshot, generated 2026-08-07 08:48:46 &mdash; ask for a fresh one, this page does not auto-update</div>
 </div>
-
 <script>
-  const DATA_URL = "https://rceubjsrajlmkcivplaf.supabase.co/functions/v1/board-data";
-  const CAUTION_EV_THRESHOLD = 40;
-  const AUTO_REFRESH_MS = 60000;
-
-  const body = document.getElementById("board-body");
-  const newSectionContainer = document.getElementById("new-section-container");
-  const statusDot = document.getElementById("status-dot");
-  const statusText = document.getElementById("status-text");
-  const tickerRows = document.getElementById("ticker-rows");
-  const tickerMatched = document.getElementById("ticker-matched");
-  const tickerCount = document.getElementById("ticker-count");
-  const refreshBtn = document.getElementById("refresh-btn");
-
-  // Bets seen on the previous successful load in *this browser tab*. null
-  // means "no prior load yet" -- nothing is flagged as new on the very
-  // first render, only once there's something to compare against.
-  let previousKeys = null;
-
-  function betKey(bet) {
-    return `${bet.market}|${bet.tour}|${bet.selection}`;
-  }
-
-  function escapeHtml(s) {
-    return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  }
-
-  function renderRow(bet, isNew) {
-    const watch = bet.evPercent >= CAUTION_EV_THRESHOLD;
-    const [pickName, oppName] = bet.selection.includes(" vs ")
-      ? bet.selection.split(/ vs (.+)/s)
-      : [bet.selection, null];
-    const pickCell = oppName
-      ? `<span class="pick">${escapeHtml(pickName)}</span> <span class="opp">vs ${escapeHtml(oppName)}</span>`
-      : `<span class="pick">${escapeHtml(pickName)}</span>`;
-    const newBadge = isNew ? ' <span class="new-badge">NEW</span>' : "";
-    const evCell = `${bet.evPercent > 0 ? "+" : ""}${bet.evPercent.toFixed(1)}%` + (watch ? ' <span class="chip">verify</span>' : "");
-    const modelPct = (bet.modelProb * 100).toFixed(1) + "%";
-
-    const tr = document.createElement("tr");
-    const classes = [watch ? "watch" : "", isNew ? "new-row" : ""].filter(Boolean);
-    if (classes.length) tr.className = classes.join(" ");
-    tr.innerHTML = `
-      <td class="market-tag">${escapeHtml(bet.market)}</td>
-      <td>${escapeHtml(bet.tour)}</td>
-      <td>${pickCell}${newBadge}</td>
-      <td class="num odds">${escapeHtml(bet.bookAmerican)}</td>
-      <td class="num">${modelPct}</td>
-      <td class="num">${bet.fairDecimal.toFixed(2)}</td>
-      <td class="num ev">${evCell}</td>
-      <td class="num">$${bet.stake.toFixed(2)}</td>`;
-    return tr;
-  }
-
-  function timeAgo(iso) {
-    const s = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 1000));
-    if (s < 60) return `${s}s ago`;
-    return `${Math.round(s / 60)}m ago`;
-  }
-
-  async function load() {
-    refreshBtn.disabled = true;
-    refreshBtn.textContent = "Refreshing…";
-    statusDot.className = "";
-    statusText.textContent = "Scanning DataGolf…";
-
-    try {
-      const resp = await fetch(DATA_URL);
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const data = await resp.json();
-      if (data.error) throw new Error(data.error);
-
-      const bets = data.bets || [];
-      const currentKeys = new Set(bets.map(betKey));
-      const newKeys = previousKeys ? [...currentKeys].filter((k) => !previousKeys.has(k)) : [];
-      previousKeys = currentKeys;
-
-      body.innerHTML = "";
-      if (bets.length === 0) {
-        body.innerHTML = '<tr><td colspan="8" class="empty">No +EV bets at or above the current threshold.</td></tr>';
-      } else {
-        for (const bet of bets) body.appendChild(renderRow(bet, newKeys.includes(betKey(bet))));
-      }
-
-      if (newKeys.length > 0) {
-        const newBets = bets.filter((bet) => newKeys.includes(betKey(bet)));
-        const newTable = document.createElement("table");
-        const newBody = document.createElement("tbody");
-        for (const bet of newBets) newBody.appendChild(renderRow(bet, true));
-        newTable.innerHTML = `
-          <thead><tr><th>Market</th><th>Tour</th><th>Pick</th><th class="num">B365</th>
-          <th class="num">Model%</th><th class="num">Fair</th><th class="num">EV%</th><th class="num">Stake</th></tr></thead>`;
-        newTable.appendChild(newBody);
-        newSectionContainer.innerHTML = `<div class="new-section"><h2>New since last refresh (${newBets.length})</h2></div>`;
-        newSectionContainer.querySelector(".new-section").appendChild(newTable);
-      } else {
-        newSectionContainer.innerHTML = "";
-      }
-
-      const scanAge = timeAgo(data.lastScan);
-      statusDot.className = data.cached ? "stale" : "";
-      statusText.textContent = data.cached
-        ? `Cached scan from ${scanAge}`
-        : `Fresh scan just now`;
-      tickerRows.innerHTML = `<b>${data.apiRows.toLocaleString()}</b> odds pulled`;
-      tickerMatched.innerHTML = `<b>${data.matched.toLocaleString()}</b> matched to a Bet365 price`;
-      const matchupNote = data.matchupMinEv ? ` (${data.matchupMinEv}% for matchups/3-balls)` : "";
-      tickerCount.innerHTML = `<b>${data.bets.length}</b> clear min. EV ${data.minEv}%${matchupNote}`;
-    } catch (err) {
-      statusDot.className = "error";
-      statusText.textContent = "Couldn't load the board";
-      body.innerHTML = `<tr><td colspan="8" class="error-row">Failed to load: ${escapeHtml(String(err.message || err))}. Try Refresh.</td></tr>`;
-    } finally {
-      refreshBtn.disabled = false;
-      refreshBtn.textContent = "Refresh";
-    }
-  }
-
-  refreshBtn.addEventListener("click", load);
-  load();
-  setInterval(load, AUTO_REFRESH_MS);
+  document.querySelectorAll('nav.tabs button').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('nav.tabs button').forEach(function (b) { b.classList.remove('active'); });
+      document.querySelectorAll('.panel').forEach(function (p) { p.classList.remove('active'); });
+      btn.classList.add('active');
+      document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+    });
+  });
 </script>
 </body>
 </html>
