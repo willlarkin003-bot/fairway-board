@@ -50,6 +50,8 @@ jobs:
           KELLY_FRACTION: "0.25"
           MAX_STAKE: "50"
           REQUESTS_PER_MINUTE: "40"
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

@@ -33,6 +33,7 @@ import grading
 import parsing
 import simulator_dashboard
 import simulator_db
+import telegram_alert
 from datagolf_client import DataGolfClient, RateLimitSuspended
 
 
@@ -188,7 +189,8 @@ def run_simulator(client: DataGolfClient, bets: list[dict]) -> None:
     sim_bets = [to_sim_bet(b) for b in bets if b["event_name"] and _passes_sim_threshold(b)]
     newly_logged = simulator_db.log_bets(sim_bets)
     if newly_logged:
-        print(f"  Simulator: logged {newly_logged} new paper bet(s).")
+        print(f"  Simulator: logged {len(newly_logged)} new paper bet(s).")
+        telegram_alert.send_new_bets(newly_logged)
 
     grade_summary = grading.grade_pending(client)
     if grade_summary["events_graded"]:

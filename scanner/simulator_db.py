@@ -80,13 +80,13 @@ class SimBet:
     stake: float
 
 
-def log_bets(bets: list[SimBet], path: str = DB_PATH) -> int:
+def log_bets(bets: list[SimBet], path: str = DB_PATH) -> list[SimBet]:
     """Insert bets, silently skipping ones already logged for that event.
 
-    Returns how many were newly inserted (i.e. genuinely new bets, not
-    re-seen picks from a repeat scan of the same tournament).
+    Returns the subset that were newly inserted (i.e. genuinely new bets,
+    not re-seen picks from a repeat scan of the same tournament).
     """
-    inserted = 0
+    inserted: list[SimBet] = []
     now = datetime.now().isoformat(timespec="seconds")
     with connect(path) as conn:
         for b in bets:
@@ -106,7 +106,7 @@ def log_bets(bets: list[SimBet], path: str = DB_PATH) -> int:
                 ),
             )
             if cur.rowcount:
-                inserted += 1
+                inserted.append(b)
     return inserted
 
 

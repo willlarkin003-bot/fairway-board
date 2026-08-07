@@ -53,6 +53,8 @@ REQUESTS_PER_MINUTE = _int("REQUESTS_PER_MINUTE", 40)
 WATCH_INTERVAL_SECONDS = _int("WATCH_INTERVAL_SECONDS", 300)
 
 DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "").strip()
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "").strip()
 
 BOOK = "bet365"
 BASE_URL = "https://feeds.datagolf.com"
