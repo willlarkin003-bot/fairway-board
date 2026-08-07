@@ -1,0 +1,63 @@
+name: Refresh Fairway Board
+
+on:
+  schedule:
+    # GitHub's minimum supported interval for scheduled workflows is 5 minutes.
+    # A full DataGolf scan is ~33 paced requests and already takes 45-60s by
+    # itself, so 5 minutes is also the fastest interval that stays safely
+    # under DataGolf's 45 req/min rate limit -- see scanner/README notes.
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-fairway-board
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        working-directory: scanner
+        run: pip install -r requirements.txt
+
+      - name: Run scanner (scan, log paper bets, grade settled events)
+        working-directory: scanner
+        env:
+          DATAGOLF_API_KEY: ${{ secrets.DATAGOLF_API_KEY }}
+          TOURS: pga,euro,kft,alt
+          OUTRIGHT_MARKETS: win,top_5,top_10,top_20,mc,frl
+          MATCHUP_MARKETS: tournament_matchups,round_matchups,3_balls
+          INCLUDE_MATCHUPS: "true"
+          MIN_EV_PERCENT: "3.0"
+          BANKROLL: "2000"
+          KELLY_FRACTION: "0.25"
+          MAX_STAKE: "50"
+          REQUESTS_PER_MINUTE: "40"
+        run: python app.py --min-ev 3
+
+      - name: Rebuild the published page
+        working-directory: scanner
+        run: python build_artifact.py ../index.html
+
+      - name: Commit and push if anything changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html scanner/simulator.db
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Automated refresh: $(date -u +'%Y-%m-%d %H:%M UTC')"
+            git push
+          fi

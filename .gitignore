@@ -1,0 +1,6 @@
+scanner/__pycache__/
+scanner/.env
+scanner/dashboard.html
+scanner/simulator.html
+scanner/scan_log.txt
+scanner/*.csv
