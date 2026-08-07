@@ -10,8 +10,10 @@ from __future__ import annotations
 
 import html
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 DASHBOARD_PATH = "dashboard.html"
+EASTERN = ZoneInfo("America/New_York")
 
 # Above this EV%, longshot/model-noise risk is high enough to flag visually
 # rather than let it read as a normal, safe pick.
@@ -138,4 +140,4 @@ def write(bets: list[dict], meta: dict, path: str = DASHBOARD_PATH, new_keys: se
 
 
 def now_str() -> str:
-    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    return datetime.now(EASTERN).strftime("%Y-%m-%d %H:%M:%S %Z")

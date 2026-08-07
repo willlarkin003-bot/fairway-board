@@ -10,11 +10,17 @@ import html
 import re
 import sys
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import simulator_db
 import simulator_dashboard as sd
 
-OUT_PATH = sys.argv[1] if len(sys.argv) > 1 else "artifact_snapshot.html"
+EASTERN = ZoneInfo("America/New_York")
+
+_args = sys.argv[1:]
+LIVE = "--live" in _args
+_args = [a for a in _args if a != "--live"]
+OUT_PATH = _args[0] if _args else "artifact_snapshot.html"
 
 # ---- Board tab: pull straight from the live dashboard.html the watch loop just wrote ----
 with open("dashboard.html", encoding="utf-8") as f:
@@ -82,7 +88,12 @@ weekly_html = sd._rollup_table_html("Week by week", weekly, limit=13)
 monthly_html = sd._rollup_table_html("Month by month", monthly, limit=12)
 tracking_note = f"Tracking since {first_placed[:10]}." if first_placed else "No bets logged yet."
 
-generated_at = now.strftime("%Y-%m-%d %H:%M:%S")
+generated_at = datetime.now(EASTERN).strftime("%Y-%m-%d %H:%M:%S %Z")
+snapshot_note = (
+    f"&#9873; refreshed continuously by a GitHub Action (about once a minute) &mdash; last updated {generated_at}"
+    if LIVE else
+    f"&#9873; one-time snapshot, generated {generated_at} &mdash; ask for a fresh one, this page does not auto-update"
+)
 
 TEMPLATE = """<!doctype html>
 <html>
@@ -280,7 +291,7 @@ TEMPLATE = """<!doctype html>
     </p>
   </section>
 
-  <div class="snapshot-flag">&#9873; one-time snapshot, generated {generated_at} &mdash; ask for a fresh one, this page does not auto-update</div>
+  <div class="snapshot-flag">{snapshot_note}</div>
 </div>
 <script>
   document.querySelectorAll('nav.tabs button').forEach(function (btn) {{
@@ -299,7 +310,7 @@ content = TEMPLATE.format(
     last_scan=last_scan, api_rows=api_rows, matched=matched, board_total=board_total, min_ev=min_ev,
     board_rows_html=board_rows_html, total_bets=total_bets, tracking_note=tracking_note,
     cards_html=cards_html, daily_html=daily_html, weekly_html=weekly_html, monthly_html=monthly_html,
-    ledger_rows_html=ledger_rows_html, generated_at=generated_at,
+    ledger_rows_html=ledger_rows_html, snapshot_note=snapshot_note,
 )
 
 with open(OUT_PATH, "w", encoding="utf-8") as f:

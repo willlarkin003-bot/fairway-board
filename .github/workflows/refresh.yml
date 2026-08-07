@@ -2,10 +2,16 @@ name: Refresh Fairway Board
 
 on:
   schedule:
-    # GitHub's minimum supported interval for scheduled workflows is 5 minutes.
-    # A full DataGolf scan is ~33 paced requests and already takes 45-60s by
-    # itself, so 5 minutes is also the fastest interval that stays safely
-    # under DataGolf's 45 req/min rate limit -- see scanner/README notes.
+    # GitHub's minimum supported *trigger* interval for scheduled workflows
+    # is 5 minutes -- there's no way to cron more often than this. To get
+    # close to a 1-minute board refresh anyway, each run loops internally
+    # (see "Continuous refresh loop" below), doing back-to-back scans for
+    # ~4.5 minutes before exiting, so the next 5-minute cron pickup lands
+    # right as this one finishes. A full DataGolf scan (~33 paced requests)
+    # already takes 45-60s on its own -- see scanner/README -- so back-to-back
+    # scans naturally land close to once a minute without adding artificial
+    # delay, while REQUESTS_PER_MINUTE below keeps every run under DataGolf's
+    # 45 req/min limit.
     - cron: "*/5 * * * *"
   workflow_dispatch: {}
 
@@ -31,7 +37,7 @@ jobs:
         working-directory: scanner
         run: pip install -r requirements.txt
 
-      - name: Run scanner (scan, log paper bets, grade settled events)
+      - name: Continuous refresh loop (scan, log paper bets, rebuild, push -- repeats for ~4.5 min)
         working-directory: scanner
         env:
           DATAGOLF_API_KEY: ${{ secrets.DATAGOLF_API_KEY }}
@@ -44,20 +50,24 @@ jobs:
           KELLY_FRACTION: "0.25"
           MAX_STAKE: "50"
           REQUESTS_PER_MINUTE: "40"
-        run: python app.py --min-ev 3
-
-      - name: Rebuild the published page
-        working-directory: scanner
-        run: python build_artifact.py ../index.html
-
-      - name: Commit and push if anything changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add index.html scanner/simulator.db
-          if git diff --cached --quiet; then
-            echo "No changes to commit."
-          else
-            git commit -m "Automated refresh: $(date -u +'%Y-%m-%d %H:%M UTC')"
-            git push
-          fi
+
+          end=$((SECONDS + 260))
+          i=0
+          while [ "$SECONDS" -lt "$end" ]; do
+            i=$((i + 1))
+            echo "::group::Cycle $i (t=${SECONDS}s)"
+            python app.py --min-ev 3
+            python build_artifact.py ../index.html --live
+            git add ../index.html simulator.db
+            if git diff --cached --quiet; then
+              echo "No changes."
+            else
+              git commit -m "Automated refresh: $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+              git push
+            fi
+            echo "::endgroup::"
+          done
+          echo "Ran $i cycle(s) in ${SECONDS}s."
