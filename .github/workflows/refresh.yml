@@ -2,16 +2,13 @@ name: Refresh Fairway Board
 
 on:
   schedule:
-    # GitHub's minimum supported *trigger* interval for scheduled workflows
-    # is 5 minutes -- there's no way to cron more often than this. To get
-    # close to a 1-minute board refresh anyway, each run loops internally
-    # (see "Continuous refresh loop" below), doing back-to-back scans for
-    # ~4.5 minutes before exiting, so the next 5-minute cron pickup lands
-    # right as this one finishes. A full DataGolf scan (~33 paced requests)
-    # already takes 45-60s on its own -- see scanner/README -- so back-to-back
-    # scans naturally land close to once a minute without adding artificial
-    # delay, while REQUESTS_PER_MINUTE below keeps every run under DataGolf's
-    # 45 req/min limit.
+    # This is a SAFETY NET ONLY, not the primary mechanism -- GitHub's cron
+    # trigger is documented as best-effort and observed in practice to skip
+    # or delay high-frequency (*/5) schedules by 20-60+ minutes on repos
+    # without heavy traffic. Real continuity comes from the "Trigger next
+    # run" step below, which has each run kick off its own successor via
+    # the API the moment it finishes, instead of waiting on GitHub's
+    # scheduler. This cron just restarts the chain if it ever dies.
     - cron: "*/5 * * * *"
   workflow_dispatch:
     inputs:
@@ -22,6 +19,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: refresh-fairway-board
@@ -98,3 +96,17 @@ jobs:
             echo "::endgroup::"
           done
           echo "Ran $i cycle(s) in ${SECONDS}s."
+
+      - name: Trigger next run
+        # Runs even if the loop above hit an error, so a transient DataGolf
+        # or git failure doesn't kill the chain -- and skipped for test runs,
+        # so firing a test alert doesn't spin up a real scan chain.
+        if: always() && github.event.inputs.test_telegram != 'true'
+        run: |
+          curl -sf -X POST \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/refresh.yml/dispatches" \
+            -d '{"ref":"main"}' \
+          && echo "Next run dispatched." \
+          || echo "::warning::Failed to dispatch next run -- the */5 cron will pick it back up within a few minutes."
