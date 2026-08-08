@@ -122,6 +122,9 @@ class DataGolfClient:
     def schedule(self, tour: str):
         return self._get("/get-schedule", {"tour": tour}, tour, "schedule")
 
+    def in_play(self, tour: str):
+        return self._get("/preds/in-play", {"tour": tour}, tour, "in-play")
+
     def historical_rounds(self, tour: str, event_id: str, year: int):
         return self._get(
             "/historical-raw-data/rounds",
