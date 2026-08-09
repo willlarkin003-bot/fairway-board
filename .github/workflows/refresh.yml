@@ -22,7 +22,10 @@ permissions:
   actions: write
 
 concurrency:
-  group: refresh-fairway-board
+  # Test-alert dispatches get their own lane so they don't get evicted from
+  # the queue by the continuously self-chaining main loop before they can
+  # ever start.
+  group: ${{ github.event.inputs.test_telegram == 'true' && 'refresh-fairway-board-test' || 'refresh-fairway-board' }}
   cancel-in-progress: false
 
 jobs:
