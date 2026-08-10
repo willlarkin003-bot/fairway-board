@@ -59,6 +59,36 @@ def build_task_list() -> list[tuple[str, str, str]]:
     return tasks
 
 
+def _completed_events_by_tour(client: DataGolfClient) -> dict[str, list[str]]:
+    """tour -> event names DataGolf's schedule marks completed.
+
+    The odds feed keeps serving a finished tournament's stale lines for a
+    while after the fact -- there's nothing left to actually bet on, so the
+    board shouldn't keep showing them. The simulator is unaffected: it
+    tracks every bet it ever logged regardless of what the board displays.
+    """
+    result: dict[str, list[str]] = {}
+    for tour in config.TOURS:
+        data = client.schedule(tour)
+        names = []
+        if isinstance(data, dict):
+            for e in data.get("schedule", []):
+                if e.get("status") == "completed":
+                    names.append(e.get("event_name", ""))
+        result[tour] = names
+    return result
+
+
+def _filter_expired(bets: list[dict], completed_by_tour: dict[str, list[str]]) -> list[dict]:
+    active = []
+    for b in bets:
+        sched_names = completed_by_tour.get(b["tour"], [])
+        if any(grading._event_names_match(b["event_name"], b["tour"], n) for n in sched_names):
+            continue
+        active.append(b)
+    return active
+
+
 def run_scan(client: DataGolfClient, keep_raw_samples: bool = False):
     tasks = build_task_list()
     records: list[parsing.BetRecord] = []
@@ -230,24 +260,30 @@ def scan_once(args) -> None:
     bets = [b for b in bets if b["ev_percent"] >= min_ev]
     bets.sort(key=lambda b: b["ev_percent"], reverse=True)
 
+    completed_by_tour = _completed_events_by_tour(client)
+    board_bets = _filter_expired(bets, completed_by_tour)
+    expired_count = len(bets) - len(board_bets)
+    if expired_count:
+        print(f"  {expired_count} pick(s) hidden from the board (tournament already finished).")
+
     global _previous_keys
-    current_keys = {_bet_key(b) for b in bets}
+    current_keys = {_bet_key(b) for b in board_bets}
     new_keys = (current_keys - _previous_keys) if _previous_keys is not None else set()
     _previous_keys = current_keys
 
-    print_table(bets, new_keys)
+    print_table(board_bets, new_keys)
 
-    run_simulator(client, bets)
+    run_simulator(client, bets)  # unfiltered -- the simulator keeps everything
 
     if args.csv:
-        write_csv(bets, args.csv)
-        print(f"\nWrote {len(bets)} rows to {args.csv}")
+        write_csv(board_bets, args.csv)
+        print(f"\nWrote {len(board_bets)} rows to {args.csv}")
 
     if args.diagnose:
         print_diagnostics(client, raw_samples)
 
     dashboard.write(
-        bets,
+        board_bets,
         {
             "last_scan": dashboard.now_str(),
             "api_rows": api_rows,
@@ -259,7 +295,7 @@ def scan_once(args) -> None:
     )
     print(f"\nDashboard updated: {dashboard.DASHBOARD_PATH}")
 
-    discord_alert.send_bets(bets)
+    discord_alert.send_bets(board_bets)
 
 
 def main() -> None:

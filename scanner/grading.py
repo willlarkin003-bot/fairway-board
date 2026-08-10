@@ -289,15 +289,18 @@ def _field_appears_final(inplay_index: dict[str, dict]) -> bool:
 
 
 def _event_names_match(bet_event_name: str, tour: str, sched_event_name: str) -> bool:
-    """DataGolf names LIV events inconsistently across its own endpoints --
-    the betting-tools odds payload calls one "LIV New York" while
-    get-schedule calls the same event just "New York". Strip that prefix
-    when comparing on the alt/LIV tour so grading doesn't silently stall."""
-    if bet_event_name == sched_event_name:
-        return True
-    if tour == "alt" and bet_event_name.lower().startswith("liv "):
-        return bet_event_name[4:].strip().lower() == sched_event_name.strip().lower()
-    return False
+    """DataGolf names the same event inconsistently across its own
+    endpoints -- e.g. the betting-tools odds payload calls a LIV event
+    "LIV New York" while get-schedule calls it just "New York" (a prefix
+    difference), and calls a Korn Ferry event "Pinnacle Bank Championship
+    presented by Woodhouse" in one place and "Pinnacle Bank Championship"
+    in the other (a sponsor-suffix difference). A plain containment check
+    in either direction covers both without needing tour-specific cases."""
+    a = (bet_event_name or "").strip().lower()
+    b = (sched_event_name or "").strip().lower()
+    if not a or not b:
+        return False
+    return a == b or a in b or b in a
 
 
 def grade_pending(client: DataGolfClient, db_path: str = simulator_db.DB_PATH) -> dict:
