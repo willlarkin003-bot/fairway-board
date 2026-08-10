@@ -266,6 +266,28 @@ def _grade_one_inplay(bet, inplay_index: dict[str, dict]) -> tuple[str, float, s
     return None
 
 
+def _inplay_to_final_entry(entry: dict) -> dict:
+    """Reshape a live in-play record into the same shape _grade_one()
+    expects from historical-raw-data (fin_text + round_N.score), so the
+    exact same, already-tested grading rules apply regardless of source."""
+    out: dict = {"fin_text": entry.get("current_pos")}
+    for n in (1, 2, 3, 4):
+        score = entry.get(f"R{n}")
+        out[f"round_{n}"] = {"score": score} if score is not None else None
+    return out
+
+
+def _field_appears_final(inplay_index: dict[str, dict]) -> bool:
+    """Safety gate before trusting in-play current_pos as a final result:
+    require that almost everyone who made the cut has actually finished
+    their last round (round 4, thru 18), not still out on the course."""
+    made_cut = [e for e in inplay_index.values() if e.get("make_cut") == 1.0]
+    if not made_cut:
+        return False
+    finished = sum(1 for e in made_cut if e.get("round") == 4 and e.get("thru") == 18)
+    return finished >= len(made_cut) * FIELD_ROUND_COMPLETE_THRESHOLD
+
+
 def _event_names_match(bet_event_name: str, tour: str, sched_event_name: str) -> bool:
     """DataGolf names LIV events inconsistently across its own endpoints --
     the betting-tools odds payload calls one "LIV New York" while
@@ -325,10 +347,17 @@ def grade_pending(client: DataGolfClient, db_path: str = simulator_db.DB_PATH) -
             continue
 
         rounds_data = client.historical_rounds(tour, event_id, int(year))
-        if not isinstance(rounds_data, dict) or "scores" not in rounds_data:
+        if isinstance(rounds_data, dict) and "scores" in rounds_data:
+            results = _build_results_index(rounds_data)
+        elif inplay_index and _field_appears_final(inplay_index):
+            # DataGolf's schedule says completed, but historical-raw-data
+            # hasn't caught up yet (there's a real propagation lag on their
+            # end). The live in-play feed already shows the whole field
+            # finished, so use its final positions/scores instead of
+            # waiting an unknown amount of time for the historical archive.
+            results = {name: _inplay_to_final_entry(e) for name, e in inplay_index.items()}
+        else:
             continue
-
-        results = _build_results_index(rounds_data)
         bets = simulator_db.pending_bets_for_event(event_name, tour, db_path)
         for bet in bets:
             status, payout, note = _grade_one(bet, results)
