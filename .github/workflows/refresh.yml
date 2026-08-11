@@ -16,16 +16,20 @@ on:
         description: "Send one fake test alert to Telegram instead of running a real scan (does not touch simulator.db)"
         type: boolean
         default: false
+      resend_since_utc:
+        description: "Catch-up: resend a real Telegram alert for every bet placed at/after this UTC timestamp (e.g. 2026-08-11T19:49:47), for recovering after a Telegram outage. Leave blank to skip. Does not touch simulator.db."
+        type: string
+        default: ""
 
 permissions:
   contents: write
   actions: write
 
 concurrency:
-  # Test-alert dispatches get their own lane so they don't get evicted from
-  # the queue by the continuously self-chaining main loop before they can
-  # ever start.
-  group: ${{ github.event.inputs.test_telegram == 'true' && 'refresh-fairway-board-test' || 'refresh-fairway-board' }}
+  # One-off dispatches (test alert, catch-up resend) get their own lane so
+  # they don't get evicted from the queue by the continuously self-chaining
+  # main loop before they can ever start.
+  group: ${{ (github.event.inputs.test_telegram == 'true' || github.event.inputs.resend_since_utc != '') && 'refresh-fairway-board-test' || 'refresh-fairway-board' }}
   cancel-in-progress: false
 
 jobs:
@@ -62,6 +66,30 @@ jobs:
           print('Sent (or no-op if TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID are unset).')
           "
 
+      - name: Resend Telegram alert for bets since a given time (catch-up after an outage)
+        if: ${{ github.event.inputs.resend_since_utc != '' }}
+        working-directory: scanner
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python -c "
+          import json
+          import simulator_db, telegram_alert
+          since = '${{ github.event.inputs.resend_since_utc }}'
+          with simulator_db.connect() as conn:
+              rows = conn.execute('SELECT * FROM bets WHERE placed_at >= ? ORDER BY placed_at', (since,)).fetchall()
+          bets = [simulator_db.SimBet(
+              event_name=r['event_name'], tour=r['tour'], market=r['market'],
+              player_name=r['player_name'], opponents=json.loads(r['opponents']),
+              round_num=r['round_num'], book_decimal=r['book_decimal'],
+              book_american=r['book_american'], model_prob=r['model_prob'],
+              fair_decimal=r['fair_decimal'], ev_percent=r['ev_percent'], stake=r['stake'],
+          ) for r in rows]
+          print(f'Resending {len(bets)} bet(s) placed since {since}...')
+          telegram_alert.send_new_bets(bets)
+          "
+
       - name: Continuous refresh loop (split-cadence ticks, rebuild, push -- repeats for ~4.5 min)
         # Split cadence: outrights/top5/10/20 refresh ~every 30s, matchups
         # and mc/frl (+ grading, which needs its own extra requests)
@@ -70,7 +98,7 @@ jobs:
         # DataGolf's 45/min cap). --tick does whatever's due and is a cheap
         # no-op otherwise, so this polls it every few seconds rather than
         # re-running a full scan each iteration like before.
-        if: ${{ github.event.inputs.test_telegram != 'true' }}
+        if: ${{ github.event.inputs.test_telegram != 'true' && github.event.inputs.resend_since_utc == '' }}
         working-directory: scanner
         env:
           DATAGOLF_API_KEY: ${{ secrets.DATAGOLF_API_KEY }}
@@ -112,7 +140,7 @@ jobs:
         # Runs even if the loop above hit an error, so a transient DataGolf
         # or git failure doesn't kill the chain -- and skipped for test runs,
         # so firing a test alert doesn't spin up a real scan chain.
-        if: always() && github.event.inputs.test_telegram != 'true'
+        if: always() && github.event.inputs.test_telegram != 'true' && github.event.inputs.resend_since_utc == ''
         run: |
           curl -sf -X POST \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
