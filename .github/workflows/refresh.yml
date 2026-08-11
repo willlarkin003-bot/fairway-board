@@ -56,14 +56,16 @@ jobs:
         run: |
           python -c "
           import telegram_alert, simulator_db
+          names = ['Zed, Player', 'Adams, Player', 'Mid, Player', 'Bee, Player', 'Young, Player',
+                   'Craft, Player']
           fake = [simulator_db.SimBet(
               event_name='TEST ALERT -- not a real pick', tour='pga', market='WIN',
-              player_name='Test, Player', opponents=[], round_num=None,
+              player_name=n, opponents=[], round_num=None,
               book_decimal=51.0, book_american='+5000', model_prob=0.03,
               fair_decimal=33.3, ev_percent=42.0, stake=5.00,
-          )]
+          ) for n in names]
           telegram_alert.send_new_bets(fake)
-          print('Sent (or no-op if TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID are unset).')
+          print('Sent (or no-op if TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID are unset). 6 fake bets should arrive as 2 messages (5 + 1), alphabetically ordered.')
           "
 
       - name: Resend Telegram alert for bets since a given time (catch-up after an outage)
