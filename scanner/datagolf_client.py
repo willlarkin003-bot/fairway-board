@@ -38,17 +38,22 @@ class DataGolfClient:
     requests_per_minute: int = field(default_factory=lambda: config.REQUESTS_PER_MINUTE)
     session: requests.Session = field(default_factory=requests.Session)
     diagnostics: list[DiagnosticEntry] = field(default_factory=list)
-    _last_request_ts: float = field(default=0.0, init=False)
+    # Wall-clock epoch seconds of the last request -- public and time.time()
+    # based (not time.monotonic()) specifically so a caller can persist it
+    # and seed a *new* client in a *later process* with it, and pacing still
+    # holds across separate invocations (see cadence.py, which restarts a
+    # fresh client on every tick).
+    last_request_ts: float = 0.0
 
     def __post_init__(self) -> None:
         self._min_interval = 60.0 / max(1, self.requests_per_minute)
 
     def _throttle(self) -> None:
-        elapsed = time.monotonic() - self._last_request_ts
+        elapsed = time.time() - self.last_request_ts
         wait = self._min_interval - elapsed
         if wait > 0:
             time.sleep(wait)
-        self._last_request_ts = time.monotonic()
+        self.last_request_ts = time.time()
 
     def _get(self, path: str, params: dict, tour: str, market: str) -> dict | list | None:
         if not self.api_key:

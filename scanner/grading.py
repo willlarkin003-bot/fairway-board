@@ -29,7 +29,7 @@ from __future__ import annotations
 import json
 
 import simulator_db
-from datagolf_client import DataGolfClient
+from datagolf_client import DataGolfClient, RateLimitSuspended
 
 CUT_LIKE = {"CUT", "WD", "DQ", "MDF"}
 
@@ -304,8 +304,23 @@ def _event_names_match(bet_event_name: str, tour: str, sched_event_name: str) ->
 
 
 def grade_pending(client: DataGolfClient, db_path: str = simulator_db.DB_PATH) -> dict:
-    """One grading pass: check pending events, grade any now completed."""
+    """One grading pass: check pending events, grade any now completed.
+
+    Grading isn't as time-critical as the main scan, so a 429 here just
+    means "skip grading this cycle, try again next time" -- it must never
+    crash the whole tick over a rate-limit suspension that the caller has
+    no way to wait out gracefully mid-tick.
+    """
     summary = {"events_checked": 0, "events_graded": 0, "bets_graded": 0}
+    try:
+        return _grade_pending_inner(client, db_path, summary)
+    except RateLimitSuspended as exc:
+        wait_s = exc.args[0] if exc.args else 300.0
+        print(f"  Grading: rate limited (~{int(wait_s)}s suspension), skipping this cycle.")
+        return summary
+
+
+def _grade_pending_inner(client: DataGolfClient, db_path: str, summary: dict) -> dict:
     pending = simulator_db.pending_events(db_path)
     if not pending:
         return summary

@@ -33,7 +33,6 @@ import grading
 import parsing
 import simulator_dashboard
 import simulator_db
-import telegram_alert
 from datagolf_client import DataGolfClient, RateLimitSuspended
 
 
@@ -69,7 +68,12 @@ def _completed_events_by_tour(client: DataGolfClient) -> dict[str, list[str]]:
     """
     result: dict[str, list[str]] = {}
     for tour in config.TOURS:
-        data = client.schedule(tour)
+        try:
+            data = client.schedule(tour)
+        except RateLimitSuspended as exc:
+            wait_s = exc.args[0] if exc.args else 300.0
+            print(f"  Expiry check: rate limited (~{int(wait_s)}s suspension), skipping this cycle.")
+            break
         names = []
         if isinstance(data, dict):
             for e in data.get("schedule", []):
@@ -219,8 +223,7 @@ def run_simulator(client: DataGolfClient, bets: list[dict]) -> None:
     sim_bets = [to_sim_bet(b) for b in bets if b["event_name"] and _passes_sim_threshold(b)]
     newly_logged = simulator_db.log_bets(sim_bets)
     if newly_logged:
-        print(f"  Simulator: logged {len(newly_logged)} new paper bet(s).")
-        telegram_alert.send_new_bets(newly_logged)
+        print(f"  Simulator: logged {newly_logged} new paper bet(s).")
 
     grade_summary = grading.grade_pending(client)
     if grade_summary["events_graded"]:
@@ -305,12 +308,30 @@ def main() -> None:
     parser.add_argument("--min-ev", type=float, default=None, help="minimum EV%% to display")
     parser.add_argument("--csv", type=str, default=None, help="write results to this CSV path")
     parser.add_argument("--diagnose", action="store_true", help="print per-request diagnostics")
+    parser.add_argument(
+        "--tick", action="store_true",
+        help="run whichever split-cadence bucket (fast/slow) is due, once, then exit -- see cadence.py",
+    )
+    parser.add_argument(
+        "--watch-fast", action="store_true",
+        help="persistent split-cadence loop: outrights/top-N every ~30s, matchups/mc/frl/grading every ~150s",
+    )
     args = parser.parse_args()
 
     if not config.API_KEY:
         raise SystemExit(
             "DATAGOLF_API_KEY is not set. Copy .env.example to .env and paste your key in."
         )
+
+    if args.tick:
+        import cadence
+        cadence.tick(min_ev=args.min_ev)
+        return
+
+    if args.watch_fast:
+        import cadence
+        cadence.watch_fast(min_ev=args.min_ev)
+        return
 
     if not args.watch:
         scan_once(args)

@@ -62,7 +62,14 @@ jobs:
           print('Sent (or no-op if TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID are unset).')
           "
 
-      - name: Continuous refresh loop (scan, log paper bets, rebuild, push -- repeats for ~4.5 min)
+      - name: Continuous refresh loop (split-cadence ticks, rebuild, push -- repeats for ~4.5 min)
+        # Split cadence: outrights/top5/10/20 refresh ~every 30s, matchups
+        # and mc/frl (+ grading, which needs its own extra requests)
+        # refresh ~every 150s -- see cadence.py for exactly why (the naive
+        # "outrights every 10s" ask is 105 req/min, more than double
+        # DataGolf's 45/min cap). --tick does whatever's due and is a cheap
+        # no-op otherwise, so this polls it every few seconds rather than
+        # re-running a full scan each iteration like before.
         if: ${{ github.event.inputs.test_telegram != 'true' }}
         working-directory: scanner
         env:
@@ -86,8 +93,8 @@ jobs:
           i=0
           while [ "$SECONDS" -lt "$end" ]; do
             i=$((i + 1))
-            echo "::group::Cycle $i (t=${SECONDS}s)"
-            python app.py --min-ev 3
+            echo "::group::Tick $i (t=${SECONDS}s)"
+            python app.py --tick --min-ev 3
             python build_artifact.py ../index.html --live
             git add ../index.html simulator.db
             if git diff --cached --quiet; then
@@ -97,8 +104,9 @@ jobs:
               git push
             fi
             echo "::endgroup::"
+            sleep 2
           done
-          echo "Ran $i cycle(s) in ${SECONDS}s."
+          echo "Ran $i tick(s) in ${SECONDS}s."
 
       - name: Trigger next run
         # Runs even if the loop above hit an error, so a transient DataGolf
