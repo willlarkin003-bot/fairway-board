@@ -218,15 +218,24 @@ def to_sim_bet(b: dict) -> simulator_db.SimBet:
     )
 
 
-def run_simulator(client: DataGolfClient, bets: list[dict]) -> None:
-    """Log every qualifying pick as a paper bet, grade whatever's now
-    settled, and rewrite the local (never-published) simulator dashboard."""
+def log_new_bets(bets: list[dict]) -> list[simulator_db.SimBet]:
+    """Log every qualifying pick as a paper bet and alert Telegram
+    immediately for whatever's genuinely new. Purely local (DB write +
+    an HTTP call to Telegram, no DataGolf requests), so this is cheap
+    enough to call on every tick -- fast or slow -- rather than gating
+    notifications behind the slower grading cadence."""
     sim_bets = [to_sim_bet(b) for b in bets if b["event_name"] and _passes_sim_threshold(b)]
     newly_logged = simulator_db.log_bets(sim_bets)
     if newly_logged:
         print(f"  Simulator: logged {len(newly_logged)} new paper bet(s).")
         telegram_alert.send_new_bets(newly_logged)
+    return newly_logged
 
+
+def grade_and_write(client: DataGolfClient) -> None:
+    """Grade whatever's now settled (needs its own DataGolf requests, so
+    this stays on the slower cadence) and rewrite the local (never
+    published) simulator dashboard."""
     grade_summary = grading.grade_pending(client)
     if grade_summary["events_graded"]:
         print(
@@ -278,7 +287,8 @@ def scan_once(args) -> None:
 
     print_table(board_bets, new_keys)
 
-    run_simulator(client, bets)  # unfiltered -- the simulator keeps everything
+    log_new_bets(bets)  # unfiltered -- the simulator keeps everything
+    grade_and_write(client)
 
     if args.csv:
         write_csv(board_bets, args.csv)

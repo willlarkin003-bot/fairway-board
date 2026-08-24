@@ -128,6 +128,9 @@ def tick(min_ev: float | None = None, state_path: str = STATE_PATH) -> dict:
         state.next_fast_due = now + FAST_INTERVAL_SECONDS
         did_fast = True
         print(f"  {len(state.fast_bets)} qualifying fast-group picks.")
+        # Log + alert immediately -- don't make Telegram wait on the slower
+        # grading cadence just because that's where it used to live.
+        app_module.log_new_bets(state.fast_bets)
 
     if now >= state.next_slow_due:
         print(f"[{datetime.now():%Y-%m-%d %H:%M:%S}] Slow tick: mc/frl/matchups + grading...")
@@ -139,8 +142,8 @@ def tick(min_ev: float | None = None, state_path: str = STATE_PATH) -> dict:
         did_slow = True
         print(f"  {len(state.slow_bets)} qualifying slow-group picks.")
 
-        all_for_sim = state.fast_bets + state.slow_bets
-        app_module.run_simulator(client, all_for_sim)
+        app_module.log_new_bets(state.slow_bets)
+        app_module.grade_and_write(client)
 
     state.last_request_ts = client.last_request_ts
 
