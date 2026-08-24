@@ -112,7 +112,7 @@ jobs:
           BANKROLL: "2000"
           KELLY_FRACTION: "0.25"
           MAX_STAKE: "50"
-          REQUESTS_PER_MINUTE: "45"
+          REQUESTS_PER_MINUTE: "42"
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
