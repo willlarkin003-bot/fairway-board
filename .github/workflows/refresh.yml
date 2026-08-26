@@ -29,7 +29,16 @@ concurrency:
   # One-off dispatches (test alert, catch-up resend) get their own lane so
   # they don't get evicted from the queue by the continuously self-chaining
   # main loop before they can ever start.
-  group: ${{ (github.event.inputs.test_telegram == 'true' || github.event.inputs.resend_since_utc != '') && 'refresh-fairway-board-test' || 'refresh-fairway-board' }}
+  #
+  # Renamed refresh-fairway-board -> refresh-fairway-board-v2 on 2026-08-26:
+  # a dispatched run got stuck in GitHub's own "queued" state for ~8 hours
+  # (never started, and the REST cancel endpoint refused to touch it --
+  # a known GitHub Actions issue, not something in this workflow). Since
+  # cancel-in-progress is false, every later run just queued forever behind
+  # it, silently stalling the whole chain. Renaming the group is the actual
+  # fix (new runs stop competing for the stuck run's slot); if this
+  # happens again, bump the suffix again rather than debugging the zombie.
+  group: ${{ (github.event.inputs.test_telegram == 'true' || github.event.inputs.resend_since_utc != '') && 'refresh-fairway-board-test' || 'refresh-fairway-board-v2' }}
   cancel-in-progress: false
 
 jobs:
