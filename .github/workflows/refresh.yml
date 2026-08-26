@@ -36,9 +36,15 @@ concurrency:
   # a known GitHub Actions issue, not something in this workflow). Since
   # cancel-in-progress is false, every later run just queued forever behind
   # it, silently stalling the whole chain. Renaming the group is the actual
-  # fix (new runs stop competing for the stuck run's slot); if this
-  # happens again, bump the suffix again rather than debugging the zombie.
-  group: ${{ (github.event.inputs.test_telegram == 'true' || github.event.inputs.resend_since_utc != '') && 'refresh-fairway-board-test' || 'refresh-fairway-board-v2' }}
+  # fix (new runs stop competing for the stuck run's slot).
+  #
+  # Made this self-healing on 2026-08-26: the group suffix is now the repo
+  # variable CONCURRENCY_EPOCH instead of a hardcoded string. watchdog.yml
+  # runs every 15 minutes, and if the board has gone stale it bumps this
+  # variable itself -- which instantly moves all future dispatches into a
+  # fresh concurrency group, abandoning any zombie stuck in "queued" behind
+  # the old one, with no need for a human to notice and rename anything.
+  group: ${{ (github.event.inputs.test_telegram == 'true' || github.event.inputs.resend_since_utc != '') && 'refresh-fairway-board-test' || format('refresh-fairway-board-{0}', vars.CONCURRENCY_EPOCH) }}
   cancel-in-progress: false
 
 jobs:

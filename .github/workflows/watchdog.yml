@@ -1,0 +1,55 @@
+name: Fairway Board Watchdog
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  watchdog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check staleness, recover if needed
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          STALE_MINUTES=20
+
+          LAST_SUCCESS=$(gh run list --repo "$REPO" --workflow=refresh.yml --status success --limit 1 --json updatedAt -q '.[0].updatedAt')
+
+          if [ -z "$LAST_SUCCESS" ]; then
+            echo "::warning::No successful refresh.yml runs found at all -- treating as stale."
+            AGE_MINUTES=999999
+          else
+            LAST_EPOCH=$(date -u -d "$LAST_SUCCESS" +%s)
+            NOW_EPOCH=$(date -u +%s)
+            AGE_MINUTES=$(( (NOW_EPOCH - LAST_EPOCH) / 60 ))
+            echo "Last successful refresh: $LAST_SUCCESS ($AGE_MINUTES minute(s) ago)"
+          fi
+
+          if [ "$AGE_MINUTES" -lt "$STALE_MINUTES" ]; then
+            echo "Healthy -- nothing to do."
+            exit 0
+          fi
+
+          echo "::warning::Board stale for $AGE_MINUTES minute(s) (threshold ${STALE_MINUTES}m) -- attempting recovery."
+
+          STUCK_RUNS=$(gh run list --repo "$REPO" --workflow=refresh.yml --status queued --json databaseId,createdAt \
+            -q '.[] | select((now - (.createdAt | fromdateiso8601)) > 600) | .databaseId')
+          for RUN_ID in $STUCK_RUNS; do
+            echo "Found stuck queued run $RUN_ID -- attempting cancel (best effort)..."
+            gh api -X POST "repos/$REPO/actions/runs/$RUN_ID/cancel" 2>&1 || echo "Cancel call failed/refused, continuing anyway -- the epoch bump handles this regardless."
+          done
+
+          NEW_EPOCH=$(date -u +%s)
+          gh variable set CONCURRENCY_EPOCH --repo "$REPO" --body "$NEW_EPOCH"
+          echo "Bumped CONCURRENCY_EPOCH to $NEW_EPOCH -- new dispatches now use a fresh concurrency group."
+
+          gh workflow run refresh.yml --repo "$REPO"
+          echo "Dispatched a fresh refresh.yml run to restart the chain."
